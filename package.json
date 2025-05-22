@@ -1,0 +1,32 @@
+{
+  "name": "convene-flow",
+  "version": "1.0.0",
+  "description": "\"Convene\" means to assemble or gather, while \"Flow\" suggests a seamless, well-managed process. It evokes organization and smooth operations.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bunam-mx/convene-flow.git"
+  },
+  "author": "Omar Terrazas Razo",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/bunam-mx/convene-flow/issues"
+  },
+  "homepage": "https://github.com/bunam-mx/convene-flow#readme",
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "googleapis": "^149.0.0",
+    "mariadb": "^3.4.2",
+    "nodemailer": "^7.0.3",
+    "sequelize": "^6.37.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
