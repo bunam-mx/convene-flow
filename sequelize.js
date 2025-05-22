@@ -18,12 +18,18 @@ db.Op = Sequelize.Op;
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
+db.users = require("./models/users")(sequelize, Sequelize);
+db.sigecos = require("./models/sigecos")(sequelize, Sequelize);
+
+db.users.hasOne(db.sigecos);
+db.sigecos.belongsTo(db.users);
+
 sequelize
   .sync({
-    force: false,
+    alter: true,
   })
   .then(() => {
-    console.log("Database & tables created!");
+    console.log("Database & tables updated!");
   });
 
 module.exports = db;

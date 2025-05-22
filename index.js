@@ -14,5 +14,7 @@ app.get('/', (req, res) => {
     res.send('Welcome to Convence Flow API');
 });
 
+require('./routes/api/users')(app);
+
 const PORT = process.env.PORT || 6600;
 app.listen(PORT);
