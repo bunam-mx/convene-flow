@@ -2,7 +2,53 @@ const express = require("express"),
   db = require("../../sequelize"),
   app = express(),
   crypto = require("crypto"),
-  secret = process.env.CONVENE_SECRET;
+  secret = process.env.CONVENE_SECRET,
+  nodemailer = require("nodemailer");
+const { google } = require('googleapis');
+
+const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const REDIRECT_URI = 'https://developers.google.com/oauthplayground';
+const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
+
+const oAuth2Client = new google.auth.OAuth2(
+    CLIENT_ID,
+    CLIENT_SECRET,
+    REDIRECT_URI
+);
+oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+
+const sendActivateEmail = async (email, hash) => {
+  const accessToken = await oAuth2Client.getAccessToken();
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        type: 'OAuth2',
+        user: process.env.GOOGLE_WORKSPACE_EMAIL,
+        clientId: CLIENT_ID,
+        clientSecret: CLIENT_SECRET,
+        refreshToken: REFRESH_TOKEN,
+        accessToken: accessToken.token,
+    },
+  });
+
+  const mailOptions = {
+    from: '"XXI Encuentro Regional AIESAD 2025" <encuentroaiesad2025@cuaed.unam.mx>',
+    to: email,
+    subject: "☑️ Has solicitado validar tu cuenta",
+    text: `Hemos recibido una solicitud para activar tu cuenta. Te damos la bienvenida al XXI Encuentro Regional AIESAD 2025. Para comenzar a utilizar tu cuenta, por favor valida tu correo electrónico a través del siguiente enlace: ${process.env.URL_DESTINY}/user/activate/${this.hash}`,
+    html: `<div style="font-size: 24px"><p>Hemos recibido una solicitud para activar tu cuenta.</p><p>Te damos la bienvenida al <strong>XXI Encuentro Regional AIESAD 2025</strong>. Para comenzar a utilizar tu cuenta, por favor valida tu correo electrónico a través del siguiente <a href="${process.env.URL_DESTINY}/user/activate/${hash}">enlace</a>.</p></div>`,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Message sent: %s", info.messageId);
+    return info;
+  } catch (error) {
+    console.log("Error to send email messages", error);
+    return error;
+  }
+};
 
 module.exports = (app) => {
   app.route("/api/users/").get(function (req, res) {
@@ -114,6 +160,29 @@ module.exports = (app) => {
           res.json({ user: false });
         } else {
           res.json({ user: true });
+        }
+      });
+  });
+
+  app.route("/api/users/getactivate").post(function (req, res) {
+    const hash = crypto.randomBytes(32).toString("hex");
+    db.users
+      .update(
+        { hash: hash },
+        {
+          where: {
+            email: req.body.email,
+            active: 0,
+          },
+        }
+      )
+      .then((user) => {
+        if (user[0] === 0) {
+          res.json({ user: false });
+        } else {
+          sendActivateEmail(req.body.email, hash).then((sendMail) => {
+            res.json({ user: sendMail.messageId });
+          });
         }
       });
   });

@@ -37,7 +37,6 @@ module.exports = (sequelize, type) => {
 
   Users.prototype.sendWelcomeEmail = async function () {
     const accessToken = await oAuth2Client.getAccessToken();
-    console.log("Access token: ", accessToken);
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
