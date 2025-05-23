@@ -50,6 +50,70 @@ const sendActivateEmail = async (email, hash) => {
   }
 };
 
+const sendRecoveryEmail = async (email, hash) => {
+  const accessToken = await oAuth2Client.getAccessToken();
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        type: 'OAuth2',
+        user: process.env.GOOGLE_WORKSPACE_EMAIL,
+        clientId: CLIENT_ID,
+        clientSecret: CLIENT_SECRET,
+        refreshToken: REFRESH_TOKEN,
+        accessToken: accessToken.token,
+    },
+  });
+
+  const mailOptions = {
+    from: '"XXI Encuentro Regional AIESAD 2025" <encuentroaiesad2025@cuaed.unam.mx>',
+    to: email,
+    subject: "🔐 Has solicitado la recuperación de tu contraseña",
+    text: `Hemos recibido una solicitud para recuperar tu contraseña, si no has sido tú puedes hacer caso omiso de este correo. No te preocupes que este proceso solo se realiza a través de tu cuenta de correo registrada en nuestra plataforma. Para recuperar tu contraseña, por favor accede al siguiente enlace: ${process.env.URL_DESTINY}/user/setpassword/${hash}`,
+    html: `<div style="font-size: 24px"><p>Hemos recibido una solicitud para recuperar tu contraseña, si no has sido tú puedes hacer caso omiso de este correo. No te preocupes que este proceso solo se realiza a través de tu cuenta de correo registrada en nuestra plataforma.</p><p>Para recuperar tu contraseña, por favor accede al siguiente <a href="${process.env.URL_DESTINY}/user/setpassword/${hash}">enlace</a>.</p></div>`,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Message sent: %s", info.messageId);
+    return info;
+  } catch (error) {
+    console.log("Error to send email messages", error);
+    return error;
+  }
+};
+
+const sendConfirmationChangePassword = async (email) => {
+  const accessToken = await oAuth2Client.getAccessToken();
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        type: 'OAuth2',
+        user: process.env.GOOGLE_WORKSPACE_EMAIL,
+        clientId: CLIENT_ID,
+        clientSecret: CLIENT_SECRET,
+        refreshToken: REFRESH_TOKEN,
+        accessToken: accessToken.token,
+    },
+  });
+
+  const mailOptions = {
+    from: '"XXI Encuentro Regional AIESAD 2025" <encuentroaiesad2025@cuaed.unam.mx>',
+    to: email,
+    subject: "🔑 Has realizado un cambio de tu contraseña",
+    text: `Hemos procesado tu cambio de contraseña. Ahora puedes ingresar a la plataforma con tu nueva contraseña.`,
+    html: `<div style="font-size: 24px"><p>Hemos procesado tu cambio de contraseña.</p><p>Ahora puedes ingresar a la plataforma con tu nueva contraseña.</p><p>Da clic en el siguiente <a href="${process.env.URL_DESTINY}" target="_blank">enlace</a> para ir a la plataforma.</p></div>`,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Message sent: %s", info.messageId);
+    return info;
+  } catch (error) {
+    console.log("Error to send email messages", error);
+    return error;
+  }
+};
+
 module.exports = (app) => {
   app.route("/api/users/").get(function (req, res) {
     db.users
@@ -183,6 +247,67 @@ module.exports = (app) => {
           sendActivateEmail(req.body.email, hash).then((sendMail) => {
             res.json({ user: sendMail.messageId });
           });
+        }
+      });
+  });
+
+  app.route("/api/users/recovery").post(function (req, res) {
+    const hash = crypto.randomBytes(32).toString("hex");
+    db.users
+      .update(
+        { hash: hash },
+        {
+          where: {
+            email: req.body.email,
+          },
+        }
+      )
+      .then((user) => {
+        if (user[0] === 0) {
+          res.json({ user: false });
+        } else {
+          sendRecoveryEmail(req.body.email, hash).then((sendMail) => {
+            res.json({ user: sendMail.messageId });
+          });
+        }
+      });
+  });
+
+  app.route("/api/users/changepassword").post(function (req, res) {
+    const newHash = crypto.randomBytes(32).toString("hex");
+    const newPassword = crypto
+      .createHash("sha256", secret)
+      .update(req.body.password)
+      .digest("hex");
+
+    db.users
+      .update(
+        {
+          password: newPassword,
+          hash: newHash,
+        },
+        {
+          where: {
+            hash: req.body.hash,
+          },
+        }
+      )
+      .then((user) => {
+        if (user[0] === 0) {
+          res.json({ newPassword: false });
+        } else {
+          db.users
+            .findOne({
+              where: {
+                hash: newHash,
+                password: newPassword,
+              },
+            })
+            .then((sendUser) => {
+              sendConfirmationChangePassword(sendUser.email).then(() => {
+                res.json({ newPassword: true });
+              });
+            });
         }
       });
   });
