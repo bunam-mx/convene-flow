@@ -312,4 +312,62 @@ module.exports = (app) => {
       });
   });
 
+  app.route("/api/users/signin").post(function (req, res) {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ error: "Correo electrónico y contraseña son requeridos." });
+    }
+
+    const hashedPassword = crypto
+      .createHash("sha256", secret)
+      .update(password)
+      .digest("hex");
+
+    db.users
+      .findOne({
+        where: {
+          email: email,
+        },
+      })
+      .then((user) => {
+        if (!user) {
+          return res
+            .status(401)
+            .json({ error: "Usuario no encontrado." });
+        }
+
+        if (!user.active) {
+          return res
+            .status(401)
+            .json({ error: "Usuario no activo. Por favor, activa tu cuenta." });
+        }
+
+        if (user.password !== hashedPassword) {
+          return res
+            .status(401)
+            .json({ error: "Contraseña incorrecta." });
+        }
+
+        // Usuario autenticado correctamente
+        res.json({
+          message: "Inicio de sesión exitoso.",
+          user: {
+            id: user.id,
+            email: user.email,
+            active: user.active,
+            userType: user.userType,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+          },
+        });
+      })
+      .catch((err) => {
+        console.error("Error en signin:", err);
+        res.status(500).json({ error: "Error interno del servidor." });
+      });
+  });
+
 }
