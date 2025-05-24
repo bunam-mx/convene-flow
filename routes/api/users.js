@@ -5,6 +5,9 @@ const express = require("express"),
   secret = process.env.CONVENE_SECRET,
   nodemailer = require("nodemailer");
 const { google } = require('googleapis');
+const qrcode = require('qrcode');
+const fs = require('fs');
+const path = require('path');
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -172,36 +175,62 @@ module.exports = (app) => {
               if (sigeco.length > 0) {
                 res.json({ error: "El CURP ya se encuentra registrado" });
               } else {
-                db.users
-                  .create({
-                    email: req.body.email,
-                    password: password,
-                    active: false,
-                    hash: hash,
-                  })
-                  .then((user) => {
-                    db.sigecos
-                      .create({
-                      userId: user.id,
-                      name: req.body.name.toUpperCase(),
-                      lastname: req.body.lastname.toUpperCase(),
-                      entity: req.body.entity.toUpperCase(),
-                      account: req.body.account,
-                      curp: req.body.curp.toUpperCase(),
-                      studyLevel: req.body.studyLevel,
-                      })
-                      .then((sigeco) => {
-                      user.sendWelcomeEmail().then((sendMail) => {
-                        if (sendMail.accepted) {
-                        res.json({ messageId: sendMail.messageId });
-                        } else {
-                        res.json({
-                          error: "Error al enviar correo electrónico",
+                const qrDataForFileName = crypto.createHash('sha256').update(req.body.email).digest('hex');
+                const qrContent = qrDataForFileName; 
+                const qrCodeFileName = `qr_${qrDataForFileName}.png`;
+                
+                const baseDir = path.join(__dirname, '..', '..'); 
+                const qrCodeDirectory = path.join(baseDir, 'public', 'qrcodes');
+                const qrCodeFilePath = path.join(qrCodeDirectory, qrCodeFileName);
+                const publicQrCodePath = `/qrcodes/${qrCodeFileName}`; 
+
+                if (!fs.existsSync(qrCodeDirectory)){
+                    fs.mkdirSync(qrCodeDirectory, { recursive: true });
+                    console.log(`Directorio creado: ${qrCodeDirectory}`);
+                }
+
+                qrcode.toFile(qrCodeFilePath, qrContent, { width: 300 }, (err) => {
+                  if (err) {
+                    console.error('Error generando el código QR:', err);
+                  }
+                  console.log(`Código QR generado: ${qrCodeFilePath}`);
+
+                  db.users
+                    .create({
+                      email: req.body.email,
+                      password: password,
+                      active: false,
+                      hash: hash,
+                      qrcode: publicQrCodePath, 
+                    })
+                    .then((newUser) => {
+                      db.sigecos
+                        .create({
+                        userId: newUser.id, 
+                        name: req.body.name.toUpperCase(),
+                        lastname: req.body.lastname.toUpperCase(),
+                        entity: req.body.entity.toUpperCase(),
+                        account: req.body.account,
+                        curp: req.body.curp.toUpperCase(),
+                        studyLevel: req.body.studyLevel,
+                        })
+                        .then((newSigeco) => { 
+                          newUser.sendWelcomeEmail().then((sendMail) => { 
+                            if (sendMail.accepted) {
+                            res.json({ messageId: sendMail.messageId });
+                            } else {
+                            res.json({
+                              error: "Error al enviar correo electrónico",
+                            });
+                            }
+                          });
                         });
-                        }
-                      });
-                      });
-                  });
+                    })
+                    .catch(dbError => { 
+                        console.error("Error al crear usuario:", dbError);
+                        res.status(500).json({ error: "Error al crear el usuario."});
+                    });
+                });
               }
             });
         }
@@ -359,6 +388,7 @@ module.exports = (app) => {
             email: user.email,
             active: user.active,
             userType: user.userType,
+            qrcode: user.qrcode,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
           },

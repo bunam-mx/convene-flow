@@ -24,6 +24,7 @@
     "googleapis": "^149.0.0",
     "mariadb": "^3.4.2",
     "nodemailer": "^7.0.3",
+    "qrcode": "^1.5.4",
     "sequelize": "^6.37.7"
   },
   "devDependencies": {

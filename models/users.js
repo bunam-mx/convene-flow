@@ -33,6 +33,7 @@ module.exports = (sequelize, type) => {
       defaultValue: "user",
     },
     hash: type.STRING,
+    qrcode: type.STRING,
   });
 
   Users.prototype.sendWelcomeEmail = async function () {
