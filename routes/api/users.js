@@ -360,6 +360,10 @@ module.exports = (app) => {
         where: {
           email: email,
         },
+        include: [{
+          model: db.sigecos,
+          attributes: ['name', 'lastname', 'entity', 'account', 'curp', 'studyLevel']
+        }]
       })
       .then((user) => {
         if (!user) {
@@ -380,18 +384,25 @@ module.exports = (app) => {
             .json({ error: "Contraseña incorrecta." });
         }
 
-        // Usuario autenticado correctamente
+        const userData = {
+          id: user.id,
+          email: user.email,
+          active: user.active,
+          userType: user.userType,
+          qrcode: user.qrcode,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        };
+      
+        if (user.sigeco) {
+          userData.sigeco = user.sigeco;
+        } else if (user.dataValues && user.dataValues.sigeco) { 
+          userData.sigeco = user.dataValues.sigeco;
+        }
+
         res.json({
           message: "Inicio de sesión exitoso.",
-          user: {
-            id: user.id,
-            email: user.email,
-            active: user.active,
-            userType: user.userType,
-            qrcode: user.qrcode,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-          },
+          user: userData,
         });
       })
       .catch((err) => {
