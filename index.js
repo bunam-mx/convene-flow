@@ -17,6 +17,7 @@ app.get('/', (req, res) => {
 });
 
 require('./routes/api/users')(app);
+require('./routes/api/sigecos')(app);
 
 const PORT = process.env.PORT || 6600;
 app.listen(PORT);
