@@ -56,6 +56,7 @@ module.exports = (app) => {
 
   app.route("/api/proposals/:userId").get(async function (req, res) {
     const { userId } = req.params;
+    const { Sequelize } = require("sequelize"); // Import Sequelize for fn and col if needed, though Op is not used here directly
 
     if (!userId) {
       return res.status(400).json({ error: "El parámetro 'userId' es requerido." });
@@ -63,10 +64,20 @@ module.exports = (app) => {
 
     try {
       const userWithProposals = await db.users.findByPk(userId, {
+        attributes: [], // We don't need the main user's attributes, just their proposals
         include: [{
           model: db.proposals,
-          attributes: ['id', 'title', 'proposal', 'createdAt', 'updatedAt'], // Campos de la propuesta a devolver
-          through: { attributes: [] } // No incluir atributos de la tabla de unión
+          attributes: ['id', 'title', 'proposal', 'createdAt', 'updatedAt'],
+          through: { attributes: [] }, // Don't include junction table attributes here
+          include: [{ // Include users (authors) for each proposal
+            model: db.users, // Users associated with the proposal
+            attributes: ['id'], // Only fetch ID from users table directly
+            through: { attributes: [] }, // Don't include junction table attributes here
+            include: [{ // Include sigecos for each author to get name and lastname
+              model: db.sigecos,
+              attributes: ['name', 'lastname']
+            }]
+          }]
         }]
       });
 
@@ -74,8 +85,33 @@ module.exports = (app) => {
         return res.status(404).json({ error: "Usuario no encontrado." });
       }
 
-      // userWithProposals.proposals contendrá el array de propuestas asociadas
-      res.json(userWithProposals.proposals || []); 
+      const proposalsData = userWithProposals.proposals || [];
+      
+      const result = proposalsData.map(proposal => {
+        const otherAuthors = proposal.users // 'users' is the default alias from Proposals.belongsToMany(Users)
+          .filter(author => author.id !== parseInt(userId)) // Exclude the requesting user
+          .map(author => {
+            let fullname = "Nombre no disponible";
+            if (author.sigeco && author.sigeco.name && author.sigeco.lastname) {
+              fullname = `${author.sigeco.name} ${author.sigeco.lastname}`;
+            }
+            return {
+              id: author.id,
+              fullname: fullname
+            };
+          });
+        
+        return {
+          id: proposal.id,
+          title: proposal.title,
+          proposal: proposal.proposal,
+          createdAt: proposal.createdAt,
+          updatedAt: proposal.updatedAt,
+          authors: otherAuthors
+        };
+      });
+
+      res.json(result);
 
     } catch (error) {
       console.error("Error al obtener las propuestas del usuario:", error);
