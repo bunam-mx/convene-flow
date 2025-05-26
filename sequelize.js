@@ -20,13 +20,21 @@ db.sequelize = sequelize;
 
 db.users = require("./models/users")(sequelize, Sequelize);
 db.sigecos = require("./models/sigecos")(sequelize, Sequelize);
+db.proposals = require("./models/proposals")(sequelize, Sequelize); // Corregido: db.proposals en lugar de db.sigecos y cargar el modelo proposals
 
-db.users.hasOne(db.sigecos);
-db.sigecos.belongsTo(db.users);
+// db.users.hasOne(db.sigecos);
+// db.sigecos.belongsTo(db.users);
+
+// Llamar a los métodos associate si existen
+Object.keys(db).forEach(modelName => {
+  if (db[modelName].associate) {
+    db[modelName].associate(db);
+  }
+});
 
 sequelize
   .sync({
-    alter: true,
+    alter: false, // Cambiado a false para evitar alteraciones automáticas
   })
   .then(() => {
     console.log("Database & tables updated!");
