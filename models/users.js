@@ -68,5 +68,19 @@ module.exports = (sequelize, type) => {
     }
   };
 
+  // Definir asociaciones después de que todos los modelos estén disponibles
+  Users.associate = (models) => {
+    // Relación uno a uno con Sigecos
+    Users.hasOne(models.sigecos, { foreignKey: 'userId' }); 
+
+    // Relación muchos a muchos con Proposals
+    Users.belongsToMany(models.proposals, {
+      through: 'userProposals', // Mismo nombre de tabla de unión
+      foreignKey: 'userId',
+      otherKey: 'proposalId',
+      timestamps: false
+    });
+  };
+
   return Users;
 };
