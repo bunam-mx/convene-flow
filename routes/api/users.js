@@ -121,7 +121,7 @@ module.exports = (app) => {
   app.route("/api/users/").get(function (req, res) {
     db.users
       .findAll({
-        attributes: ['email', 'active', 'userType', 'createdAt', 'updatedAt'],
+        attributes: ['email', 'active', 'userType', 'createdAt', 'updatedAt', 'attendanceMode'],
         where: {
           active: true,
         },
@@ -134,7 +134,7 @@ module.exports = (app) => {
   app.route("/api/users/:id").get(function (req, res) {
     db.users
       .findAll({
-        attributes: ['email', 'active', 'userType', 'createdAt', 'updatedAt'],
+        attributes: ['email', 'active', 'userType', 'createdAt', 'updatedAt', 'attendanceMode'],
         where: {
           id: req.params.id,
         },
@@ -202,6 +202,7 @@ module.exports = (app) => {
                       active: false,
                       hash: hash,
                       qrcode: publicQrCodePath, 
+                      attendanceMode: req.body.attendanceMode || 'Presencial',
                     })
                     .then((newUser) => {
                       db.sigecos
@@ -210,7 +211,6 @@ module.exports = (app) => {
                         name: req.body.name.toUpperCase(),
                         lastname: req.body.lastname.toUpperCase(),
                         entity: req.body.entity.toUpperCase(),
-                        account: req.body.account,
                         curp: req.body.curp.toUpperCase(),
                         studyLevel: req.body.studyLevel,
                         })
@@ -362,7 +362,7 @@ module.exports = (app) => {
         },
         include: [{
           model: db.sigecos,
-          attributes: ['name', 'lastname', 'entity', 'account', 'curp', 'studyLevel']
+          attributes: ['name', 'lastname', 'entity', 'curp', 'studyLevel']
         }]
       })
       .then((user) => {

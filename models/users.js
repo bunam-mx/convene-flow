@@ -34,6 +34,11 @@ module.exports = (sequelize, type) => {
     },
     hash: type.STRING,
     qrcode: type.STRING,
+    attendanceMode: {
+      type: type.ENUM('Presencial', 'Virtual'),
+      allowNull: false,
+      defaultValue: 'Presencial',
+    },
   });
 
   Users.prototype.sendWelcomeEmail = async function () {

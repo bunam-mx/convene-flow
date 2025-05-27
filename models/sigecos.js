@@ -9,7 +9,6 @@ module.exports = (sequelize, type) => {
     name: type.STRING,
     lastname: type.STRING,
     entity: type.STRING,
-    account: type.STRING,
     curp: type.STRING,
     studyLevel: type.ENUM(
       "LICENCIATURA",
