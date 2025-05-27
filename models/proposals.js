@@ -13,6 +13,11 @@ module.exports = (sequelize, DataTypes) => {
     proposal: {
       type: DataTypes.TEXT, // Adecuado para ~500 palabras
       allowNull: false,
+    },
+    state: {
+      type: DataTypes.ENUM('Enviado', 'En proceso', 'Aceptado', 'Aceptado con recomendaciones', 'Rechazado'),
+      allowNull: false,
+      defaultValue: 'Enviado',
     }
     // Sequelize añade createdAt y updatedAt por defecto
   });
