@@ -387,6 +387,7 @@ module.exports = (app) => {
         const userData = {
           id: user.id,
           email: user.email,
+          attendanceMode: user.attendanceMode,
           active: user.active,
           userType: user.userType,
           qrcode: user.qrcode,
