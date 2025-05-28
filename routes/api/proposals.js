@@ -67,7 +67,7 @@ module.exports = (app) => {
         attributes: [], // We don't need the main user's attributes, just their proposals
         include: [{
           model: db.proposals,
-          attributes: ['id', 'title', 'proposal', 'createdAt', 'updatedAt', 'state'],
+          attributes: ['id', 'title', 'proposal', 'state', 'editable', 'createdAt', 'updatedAt'], // ...existing code...
           through: { attributes: [] }, // Don't include junction table attributes here
           include: [{ // Include users (authors) for each proposal
             model: db.users, // Users associated with the proposal
@@ -105,6 +105,8 @@ module.exports = (app) => {
           id: proposal.id,
           title: proposal.title,
           proposal: proposal.proposal,
+          state: proposal.state,
+          editable: proposal.editable,
           createdAt: proposal.createdAt,
           updatedAt: proposal.updatedAt,
           authors: otherAuthors
