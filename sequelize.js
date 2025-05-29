@@ -3,7 +3,7 @@ console.log("DATABASE", process.env.DATABASE);
 const sequelize = new Sequelize(process.env.DATABASE, process.env.DATABASE_USER, process.env.DATABASE_PASSWORD, {
   host: "localhost",
   dialect: "mariadb",
-  timezone: "-05:00",
+  timezone: "-06:00",
   pool: {
     max: 5,
     min: 0,
@@ -19,11 +19,9 @@ db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
 db.users = require("./models/users")(sequelize, Sequelize);
+db.proposals = require("./models/proposals")(sequelize, Sequelize);
 db.sigecos = require("./models/sigecos")(sequelize, Sequelize);
-db.proposals = require("./models/proposals")(sequelize, Sequelize); // Corregido: db.proposals en lugar de db.sigecos y cargar el modelo proposals
-
-// db.users.hasOne(db.sigecos);
-// db.sigecos.belongsTo(db.users);
+db.thematicLines = require("./models/thematicLines")(sequelize, Sequelize);
 
 // Llamar a los métodos associate si existen
 Object.keys(db).forEach(modelName => {
@@ -34,7 +32,7 @@ Object.keys(db).forEach(modelName => {
 
 sequelize
   .sync({
-    alter: false, // Cambiado a false para evitar alteraciones automáticas
+    alter: true, // Cambiado a false para evitar alteraciones automáticas
   })
   .then(() => {
     console.log("Database & tables updated!");

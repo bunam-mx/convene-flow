@@ -59,8 +59,8 @@ module.exports = (sequelize, type) => {
       from: '"XXI Encuentro Regional AIESAD 2025" <encuentroaiesad2025@cuaed.unam.mx>',
       to: this.email,
       subject: "✅ Comencemos validando tu cuenta",
-      text: `Te damos la bienvenida al XXI Encuentro Regional AIESAD 2025. Para comenzar a utilizar tu cuenta, por favor valida tu correo electrónico a través del siguiente enlace: ${process.env.URL_DESTINY}/user/activate/${this.hash} Este correo fue enviado automáticamente, por favor no respondas.`,
-      html: `<div style="font-size: 24px"><p>Te damos la bienvenida al <strong>XXI Encuentro Regional AIESAD 2025</strong>.</p><p>Para comenzar a utilizar tu cuenta, por favor valida tu correo electrónico a través del siguiente <a href="${process.env.URL_DESTINY}/user/activate/${this.hash}">enlace</a>.</p></div><div><p>Este correo fue enviado automáticamente, por favor no respondas.</p></div>`,
+      text: `Le damos la más cordial bienvenida al XXI Encuentro Regional AIESAD 2025. Para comenzar a utilizar su cuenta, por favor valide su correo electrónico a través del siguiente enlace: ${process.env.URL_DESTINY}/user/activate/${this.hash} Este correo fue enviado automáticamente, por favor no lo responda.`,
+      html: `<div style="font-size: 24px"><p>Le damos la más cordial bienvenida al <strong>XXI Encuentro Regional AIESAD 2025</strong>.</p><p>Para comenzar a utilizar su cuenta, por favor valide su correo electrónico a través del siguiente <a href="${process.env.URL_DESTINY}/user/activate/${this.hash}">enlace</a>.</p><p>Este correo fue enviado automáticamente, por favor no lo responda.</p><p>Para dudas comuníquese al correo <a href="mailto:encuentroaiesad2025@cuaed.unam.mx">encuentroaiesad2025@cuaed.unam.mx</a></p></div>`,
     };
 
     try {
