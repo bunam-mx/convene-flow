@@ -23,6 +23,14 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true,
+    },
+    thematicLineId: { // Add this foreign key
+      type: DataTypes.INTEGER,
+      allowNull: true, // Or false, depending on whether it's mandatory
+      references: {
+        model: 'thematicLines', // Name of the target table
+        key: 'id'
+      }
     }
     // Sequelize añade createdAt y updatedAt por defecto
   });
@@ -33,6 +41,10 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'proposalId',
       otherKey: 'userId',
       timestamps: false
+    });
+    Proposals.belongsTo(models.thematicLines, { // Add this association
+      foreignKey: 'thematicLineId',
+      as: 'thematicLine'
     });
   };
 

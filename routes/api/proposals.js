@@ -4,7 +4,7 @@ const express = require("express"),
 
 module.exports = (app) => {
   app.route("/api/proposals/").post(async function (req, res) {
-    const { title, proposal, userIds } = req.body;
+    const { title, proposal, userIds, thematicLineId } = req.body;
 
     if (!title || !proposal) {
       return res.status(400).json({ error: "Los campos 'title' y 'proposal' son requeridos." });
@@ -19,6 +19,7 @@ module.exports = (app) => {
       const newProposal = await db.proposals.create({
         title: title,
         proposal: proposal,
+        thematicLineId: thematicLineId, // Agregar thematicLineId
       });
 
       // Asociar los usuarios a la propuesta
@@ -40,6 +41,11 @@ module.exports = (app) => {
           model: db.users,
           attributes: ['id', 'email'], // Especifica qué atributos de usuario devolver
           through: { attributes: [] } // No incluir atributos de la tabla de unión
+        },
+        {
+          model: db.thematicLines,
+          as: 'thematicLine', // Asegúrate de que este es el alias correcto
+          attributes: ['id', 'thematicLine'] // Especifica los atributos que necesitas de thematicLines
         }]
       });
 
@@ -77,6 +83,11 @@ module.exports = (app) => {
               model: db.sigecos,
               attributes: ['name', 'lastname']
             }]
+          },
+          {
+            model: db.thematicLines,
+            as: 'thematicLine', // Asegúrate de que este es el alias correcto
+            attributes: ['id', 'thematicLine'] // Especifica los atributos que necesitas de thematicLines
           }]
         }]
       });
@@ -105,6 +116,7 @@ module.exports = (app) => {
           id: proposal.id,
           title: proposal.title,
           proposal: proposal.proposal,
+          thematicLine: proposal.thematicLine.thematicLine,
           state: proposal.state,
           editable: proposal.editable,
           createdAt: proposal.createdAt,
@@ -123,7 +135,7 @@ module.exports = (app) => {
 
   app.route("/api/proposals/:id").put(async function (req, res) {
     const { id } = req.params;
-    const { title, proposal, userIds } = req.body;
+    const { title, proposal, userIds, thematicLineId } = req.body;
 
     if (!id) {
       return res.status(400).json({ error: "El parámetro 'id' de la propuesta es requerido." });
@@ -150,6 +162,9 @@ module.exports = (app) => {
       if (proposal) {
         proposalInstance.proposal = proposal;
       }
+      if (thematicLineId) {
+        proposalInstance.thematicLineId = thematicLineId; // Actualizar thematicLineId si se proporciona
+      }
 
       // Guardar cambios de title y proposal
       await proposalInstance.save();
@@ -174,6 +189,11 @@ module.exports = (app) => {
           model: db.users,
           attributes: ['id', 'email'],
           through: { attributes: [] }
+        },
+        {
+          model: db.thematicLines,
+          as: 'thematicLine',
+          attributes: ['id', 'thematicLine']
         }]
       });
 
