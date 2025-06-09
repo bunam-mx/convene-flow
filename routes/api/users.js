@@ -38,9 +38,9 @@ const sendActivateEmail = async (email, hash) => {
   const mailOptions = {
     from: '"XXI Encuentro Regional AIESAD 2025" <encuentroaiesad2025@cuaed.unam.mx>',
     to: email,
-    subject: "☑️ Has solicitado validar tu cuenta",
-    text: `Hemos recibido una solicitud para activar tu cuenta. Te damos la bienvenida al XXI Encuentro Regional AIESAD 2025. Para comenzar a utilizar tu cuenta, por favor valida tu correo electrónico a través del siguiente enlace: ${process.env.URL_DESTINY}/user/activate/${this.hash}`,
-    html: `<div style="font-size: 24px"><p>Hemos recibido una solicitud para activar tu cuenta.</p><p>Te damos la bienvenida al <strong>XXI Encuentro Regional AIESAD 2025</strong>. Para comenzar a utilizar tu cuenta, por favor valida tu correo electrónico a través del siguiente <a href="${process.env.URL_DESTINY}/user/activate/${hash}">enlace</a>.</p><p>Este correo fue enviado automáticamente, por favor no lo responda.</p><p>Para dudas comuníquese al correo <a href="mailto:encuentroaiesad2025@cuaed.unam.mx">encuentroaiesad2025@cuaed.unam.mx</a></p></div>`,
+    subject: "☑️ Ha solicitado validar su cuenta",
+    text: `Hemos recibido una solicitud para activar su cuenta. Le damos la bienvenida al XXI Encuentro Regional AIESAD 2025. Para comenzar a utilizar su cuenta, por favor valide su correo electrónico a través del siguiente enlace: ${process.env.URL_DESTINY}/user/activate/${this.hash}`,
+    html: `<div style="font-size: 24px"><p>Hemos recibido una solicitud para activar su cuenta. Le damos la bienvenida al XXI Encuentro Regional AIESAD 2025. Para comenzar a utilizar su cuenta, por favor valide su correo electrónico a través del siguiente <a href="${process.env.URL_DESTINY}/user/activate/${hash}">enlace</a>.</p><p>Este correo fue enviado automáticamente, por favor no lo responda.</p><p>Para dudas comuníquese al correo <a href="mailto:encuentroaiesad2025@cuaed.unam.mx">encuentroaiesad2025@cuaed.unam.mx</a></p></div>`,
   };
 
   try {
@@ -70,9 +70,9 @@ const sendRecoveryEmail = async (email, hash) => {
   const mailOptions = {
     from: '"XXI Encuentro Regional AIESAD 2025" <encuentroaiesad2025@cuaed.unam.mx>',
     to: email,
-    subject: "🔐 Has solicitado la recuperación de tu contraseña",
-    text: `Hemos recibido una solicitud para recuperar tu contraseña, si no has sido tú puedes hacer caso omiso de este correo. No te preocupes que este proceso solo se realiza a través de tu cuenta de correo registrada en nuestra plataforma. Para recuperar tu contraseña, por favor accede al siguiente enlace: ${process.env.URL_DESTINY}/user/setpassword/${hash}`,
-    html: `<div style="font-size: 24px"><p>Hemos recibido una solicitud para recuperar tu contraseña, si no has sido tú puedes hacer caso omiso de este correo. No te preocupes que este proceso solo se realiza a través de tu cuenta de correo registrada en nuestra plataforma.</p><p>Para recuperar tu contraseña, por favor accede al siguiente <a href="${process.env.URL_DESTINY}/user/setpassword/${hash}">enlace</a>.</p><p>Este correo fue enviado automáticamente, por favor no lo responda.</p><p>Para dudas comuníquese al correo <a href="mailto:encuentroaiesad2025@cuaed.unam.mx">encuentroaiesad2025@cuaed.unam.mx</a></p></div>`,
+    subject: "🔐 Ha solicitado la recuperación de su contraseña",
+    text: `Hemos recibido una solicitud para recuperar su contraseña, si no ha sido usted puede hacer caso omiso de este correo. No se preocupe que este proceso solo se realiza a través de su cuenta de correo registrada en nuestra plataforma. Para recuperar su contraseña, por favor acceda al siguiente enlace: ${process.env.URL_DESTINY}/user/setpassword/${hash}`,
+    html: `<div style="font-size: 24px"><p>Hemos recibido una solicitud para recuperar su contraseña, si no ha sido usted puede hacer caso omiso de este correo. No se preocupe que este proceso solo se realiza a través de su cuenta de correo registrada en nuestra plataforma.</p><p>Para recuperar su contraseña, por favor acceda al siguiente <a href="${process.env.URL_DESTINY}/user/setpassword/${hash}">enlace</a>.</p><p>Este correo fue enviado automáticamente, por favor no lo responda.</p><p>Para dudas comuníquese al correo <a href="mailto:encuentroaiesad2025@cuaed.unam.mx">encuentroaiesad2025@cuaed.unam.mx</a></p></div>`,
   };
 
   try {
@@ -102,9 +102,9 @@ const sendConfirmationChangePassword = async (email) => {
   const mailOptions = {
     from: '"XXI Encuentro Regional AIESAD 2025" <encuentroaiesad2025@cuaed.unam.mx>',
     to: email,
-    subject: "🔑 Has realizado un cambio de tu contraseña",
-    text: `Hemos procesado tu cambio de contraseña. Ahora puedes ingresar a la plataforma con tu nueva contraseña.`,
-    html: `<div style="font-size: 24px"><p>Hemos procesado tu cambio de contraseña.</p><p>Ahora puedes ingresar a la plataforma con tu nueva contraseña.</p><p>Da clic en el siguiente <a href="${process.env.URL_DESTINY}" target="_blank">enlace</a> para ir a la plataforma.</p><p>Este correo fue enviado automáticamente, por favor no lo responda.</p><p>Para dudas comuníquese al correo <a href="mailto:encuentroaiesad2025@cuaed.unam.mx">encuentroaiesad2025@cuaed.unam.mx</a></p></div>`,
+    subject: "🔑 Ha realizado un cambio de su contraseña",
+    text: `Hemos procesado su cambio de contraseña. Ahora puede ingresar a la plataforma con su nueva contraseña.`,
+    html: `<div style="font-size: 24px"><p>Hemos procesado su cambio de contraseña.</p><p>Ahora puede ingresar a la plataforma con su nueva contraseña.</p><p>De clic en el siguiente <a href="${process.env.URL_DESTINY}" target="_blank">enlace</a> para ir a la plataforma.</p><p>Este correo fue enviado automáticamente, por favor no lo responda.</p><p>Para dudas comuníquese al correo <a href="mailto:encuentroaiesad2025@cuaed.unam.mx">encuentroaiesad2025@cuaed.unam.mx</a></p></div>`,
   };
 
   try {
