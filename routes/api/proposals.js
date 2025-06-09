@@ -100,7 +100,7 @@ module.exports = (app) => {
       
       const result = proposalsData.map(proposal => {
         const otherAuthors = proposal.users // 'users' is the default alias from Proposals.belongsToMany(Users)
-          .filter(author => author.id !== parseInt(userId)) // Exclude the requesting user
+          //.filter(author => author.id !== parseInt(userId)) // Exclude the requesting user
           .map(author => {
             let fullname = "Nombre no disponible";
             if (author.sigeco && author.sigeco.name && author.sigeco.lastname) {
