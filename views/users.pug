@@ -1,0 +1,258 @@
+extends layout
+
+block content
+  .flex
+    //- Include the menu block component
+    include components/menuBlock.pug
+
+    //- Main content area
+    .flex-1.py-4.px-30
+      h2.text-3xl.font-bold.mb-6 Users Management
+      .max-h-130.overflow-x-auto
+        table#users.min-w-full.divide-y-2.divide-gray-200
+          thead(class="sticky top-0 bg-white ltr\:text-left rtl\:text-right")
+            tr(class="*\:font-medium *\:text-gray-900")
+              th.px-3.py-2.whitespace-nowrap Email
+              th.px-3.py-2.whitespace-nowrap Name
+              th.px-3.py-2.whitespace-nowrap Lastname
+              th.px-3.py-2.whitespace-nowrap Entity 
+              th.px-3.py-2.whitespace-nowrap Active
+          tbody.divide-y.divide-gray-200
+            each user in usersData
+              tr.user-row(data-user-id=user.id)
+                td.px-3.py-2.whitespace-nowrap #[a(href="#" data-userId=user.id class="userDetails hover:text-gray-900 hover:underline") #{user.email}]
+                td.px-3.py-2.whitespace-nowrap #{user.sigeco.name}
+                td.px-3.py-2.whitespace-nowrap #{user.sigeco.lastname}
+                td.px-3.py-2.whitespace-nowrap #{user.sigeco.entity}
+                td.px-3.py-2.whitespace-nowrap
+                  if user.active
+                    i.fas.fa-check-circle(data-active="A")
+                  else
+                    i.fas.fa-minus-circle.text-red-700(data-active="B")
+      div.border.border-gray-100.bg-gray-50.p-4.rounded.mt-16
+        h3.text-2xl.font-bold.my-6 User details
+        #userActions(style="display: none;")
+          .grid.grid-cols-2.gap-4
+            form#userForm(method="POST" action="")
+              .mb-4
+                label.block.text-sm.font-medium.text-gray-700 Email
+                input#email(name="email" type="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
+              .mb-4
+                label.block.text-sm.font-medium.text-gray-700 Name
+                input#name(name="name" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
+              .mb-4
+                label.block.text-sm.font-medium.text-gray-700 Lastname
+                input#lastname(name="lastname" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
+              .mb-4
+                label.block.text-sm.font-medium.text-gray-700 Entity
+                input#entity(name="entity" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
+              .mb-4
+                label.flex.items-center.text-sm.font-medium.text-gray-700
+                  input#active(name="active" type="checkbox" class="mr-2 leading-tight")
+                  span.text-gray-600 Active
+              .mb-4
+                label.block.text-sm.font-medium.text-gray-700 User Type
+                select#userType(name="userType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
+                  option(value="admin") Admin
+                  option(value="staff") Staff
+                  option(value="review") Review
+                  option(value="speaker") Speaker
+                  option(value="user") User
+              .mb-4
+                label.block.text-sm.font-medium.text-gray-700 Attendance Mode
+                select#attendanceMode(name="attendanceMode" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
+                  option(value="Presencial") Presencial
+                  option(value="Virtual") Virtual
+              .mb-4
+                label.block.text-sm.font-medium.text-gray-700 CURP
+                input#curp(name="curp" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
+              .mb-4
+                label.block.text-sm.font-medium.text-gray-700 Study Level
+                select#studyLevel(name="studyLevel" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
+                  option(value="LICENCIATURA") LICENCIATURA
+                  option(value="MAESTRÍA") MAESTRÍA
+                  option(value="DOCTORADO") DOCTORADO
+                  option(value="OTRO") OTRO
+              .mb-4.text-right
+                button#saveButton(type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2") Save
+                button#cancelButton(type="button" class="ml-3 inline-flex justify-center rounded-md border border-transparent bg-gray-300 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2") Cancel
+            #options
+              button#resendActivationButton(type="button" class="mr-3 inline-flex justify-center rounded-md border border-transparent bg-yellow-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled) Resend activation
+              
+              
+
+  script.
+    document.addEventListener('DOMContentLoaded', () => {
+      const userForm = document.querySelector('#userForm');
+      const resendActivationButton = document.querySelector('#resendActivationButton');
+      let currentSortColumn = null;
+      let currentSortOrder = 'asc';
+      let selectedUserId = null;
+
+      function sortTable(columnIndex) {
+        const rows = Array.from(document.querySelectorAll('table tbody tr'));
+        const isAscending = currentSortColumn === columnIndex && currentSortOrder === 'asc';
+
+        rows.sort((a, b) => {
+          let cellA = a.children[columnIndex].textContent.trim();
+          let cellB = b.children[columnIndex].textContent.trim();
+
+          if (columnIndex === 4) { // Active column
+            cellA = a.children[columnIndex].getAttribute('data-active');
+            cellB = b.children[columnIndex].getAttribute('data-active');
+          }
+
+          return isAscending
+            ? cellA.localeCompare(cellB)
+            : cellB.localeCompare(cellA);
+        });
+
+        rows.forEach(row => document.querySelector('table tbody').appendChild(row));
+
+        currentSortColumn = columnIndex;
+        currentSortOrder = isAscending ? 'desc' : 'asc';
+      }
+
+      const table = document.querySelector('table');
+      const headers = table.querySelectorAll('thead th');
+      const tbody = table.querySelector('tbody');
+
+      headers.forEach((header, index) => {
+        const sortIcon = document.createElement('i');
+        sortIcon.className = 'fas';
+        header.appendChild(sortIcon);
+
+        header.addEventListener('click', () => {
+          headers.forEach(h => {
+            h.classList.remove('asc', 'desc');
+            const icon = h.querySelector('i');
+            if (icon) icon.className = 'fas';
+          });
+
+          header.classList.toggle('asc');
+          const icon = header.querySelector('i');
+          if (icon) {
+            icon.className = header.classList.contains('asc')
+              ? 'fas fa-sort-alpha-down'
+              : 'fas fa-sort-alpha-down-alt';
+          }
+
+          sortTable(index);
+        });
+      });
+
+      const userLinks = document.querySelectorAll('.userDetails');
+
+      userLinks.forEach(link => {
+        link.addEventListener('click', async (event) => {
+          event.preventDefault();
+
+          const userId = link.getAttribute('data-userId');
+
+          try {
+            const response = await fetch(`/cf/dashboard/users/${userId}`);
+            const userData = await response.json();
+
+            userForm.querySelector('#email').value = userData.email;
+            userForm.querySelector('#name').value = userData.sigeco.name;
+            userForm.querySelector('#lastname').value = userData.sigeco.lastname;
+            userForm.querySelector('#entity').value = userData.sigeco.entity;
+            userForm.querySelector('#active').checked = userData.active;
+            userForm.querySelector('#userType').value = userData.userType;
+            userForm.querySelector('#attendanceMode').value = userData.attendanceMode;
+            userForm.querySelector('#curp').value = userData.sigeco.curp;
+            userForm.querySelector('#studyLevel').value = userData.sigeco.studyLevel;
+
+            userActions.style.display = 'block';
+          } catch (error) {
+            console.error('Error fetching user data:', error);
+          }
+        });
+      });
+
+      document.querySelectorAll('.user-row').forEach(row => {
+        row.addEventListener('click', async () => {
+          const userId = row.dataset.userId;
+          selectedUserId = userId; // Guardar el ID del usuario seleccionado
+
+          try {
+            const response = await fetch(`/cf/dashboard/users/${userId}`);
+            const userData = await response.json();
+
+            // Llenar el formulario con los datos del usuario
+            document.querySelector('#email').value = userData.email;
+            document.querySelector('#active').checked = userData.active;
+            document.querySelector('#userType').value = userData.userType;
+            document.querySelector('#attendanceMode').value = userData.attendanceMode;
+            document.querySelector('#name').value = userData.sigeco.name;
+            document.querySelector('#lastname').value = userData.sigeco.lastname;
+            document.querySelector('#entity').value = userData.sigeco.entity;
+            document.querySelector('#curp').value = userData.sigeco.curp;
+            document.querySelector('#studyLevel').value = userData.sigeco.studyLevel;
+
+            // Habilitar o deshabilitar el botón de reenvío de activación
+            resendActivationButton.disabled = userData.active;
+
+            // Mostrar el formulario
+            userForm.style.display = 'block';
+          } catch (error) {
+            console.error('Error fetching user data:', error);
+          }
+        });
+      });
+
+      const saveButton = document.querySelector('#saveButton');
+      const cancelButton = document.querySelector('#cancelButton');
+
+      saveButton.addEventListener('click', async (event) => {
+        event.preventDefault();
+
+        if (!selectedUserId) {
+          alert('Por favor, selecciona un usuario de la tabla primero.');
+          return;
+        }
+
+        const data = {
+          email: document.querySelector('#email').value,
+          active: document.querySelector('#active').checked,
+          userType: document.querySelector('#userType').value,
+          attendanceMode: document.querySelector('#attendanceMode').value,
+          name: document.querySelector('#name').value,
+          lastname: document.querySelector('#lastname').value,
+          entity: document.querySelector('#entity').value,
+          curp: document.querySelector('#curp').value,
+          studyLevel: document.querySelector('#studyLevel').value,
+        };
+
+        const postUrl = `/cf/dashboard/users/${selectedUserId}`;
+
+        try {
+          const response = await fetch(postUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            alert(result.message);
+            userForm.style.display = 'none';
+            location.reload(); // Recargar la página para ver los cambios
+          } else {
+            alert(`Error: ${result.error}`);
+          }
+        } catch (error) {
+          console.error('Error updating user data:', error);
+          alert('Error al conectar con el servidor.');
+        }
+      });
+
+      cancelButton.addEventListener('click', () => {
+        userActions.style.display = 'none';
+        selectedUserId = null;
+        resendActivationButton.disabled = true;
+      });
+    });

@@ -1,0 +1,29 @@
+extends layout
+
+block content
+  .flex
+    //- Include the menu block component
+    include components/menuBlock.pug
+
+    //- Main content area
+    .flex-1.py-4.px-30
+      h1.text-3xl.font-bold.mb-6 ConveneFlow Dashboard
+      p Welcome to the ConveneFlow dashboard! Here you can manage your meetings and participants.
+
+      section.mt-8
+        h2.text-2xl.font-semibold.mb-4 #{data.registeredUsers} usuarios registrados
+
+      section.mt-8
+        h2.text-2xl.font-semibold.mb-4 #{data.activeUsers} usuarios activos
+      
+      section.mt-8
+        h2.text-2xl.font-semibold.mb-4 Proposals by State
+        if Array.isArray(data.proposalsByState) && data.proposalsByState.length > 0
+          ul
+            each proposal in data.proposalsByState
+              li= `${proposal.state}: ${proposal.count}`
+        else
+          p No proposals found.
+      script.
+        var clientData = !{JSON.stringify(data)};
+        console.log(clientData.proposalsByState);

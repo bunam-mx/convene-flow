@@ -32,7 +32,7 @@ Object.keys(db).forEach(modelName => {
 
 sequelize
   .sync({
-    alter: true, // Cambiado a false para evitar alteraciones automáticas
+    alter: false, // Cambiado a false para evitar alteraciones automáticas
   })
   .then(() => {
     console.log("Database & tables updated!");
