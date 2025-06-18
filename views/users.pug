@@ -131,11 +131,17 @@ block content
 
           header.classList.toggle('asc');
           const icon = header.querySelector('i');
-          if (icon) {
-            icon.className = header.classList.contains('asc')
-              ? 'fas fa-sort-alpha-down'
-              : 'fas fa-sort-alpha-down-alt';
-          }
+            if (icon) {
+            if (currentSortColumn === index && currentSortOrder === 'asc') {
+              icon.className = 'fas fa-sort-alpha-down';
+              header.classList.remove('desc');
+              header.classList.add('asc');
+            } else {
+              icon.className = 'fas fa-sort-alpha-down-alt';
+              header.classList.remove('asc');
+              header.classList.add('desc');
+            }
+            }
 
           sortTable(index);
         });
