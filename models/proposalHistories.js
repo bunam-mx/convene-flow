@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const ProposalHistory = sequelize.define("proposalHistory", {
+  const proposalHistories = sequelize.define("proposalHistories", {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -28,14 +28,14 @@ module.exports = (sequelize, DataTypes) => {
     }
   });
 
-  ProposalHistory.associate = (models) => {
-    ProposalHistory.belongsTo(models.users, {
+  proposalHistories.associate = (models) => {
+    proposalHistories.belongsTo(models.users, {
       foreignKey: 'userId'
     });
-    ProposalHistory.belongsTo(models.proposals, {
+    proposalHistories.belongsTo(models.proposals, {
       foreignKey: 'proposalId'
     });
   };
 
-  return ProposalHistory;
+  return proposalHistories;
 };

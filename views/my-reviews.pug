@@ -1,0 +1,131 @@
+extends layout
+
+block content
+  .flex
+    //- Include the menu block component
+    include components/menuBlock.pug
+
+    //- Main content area
+    .flex-1.py-4.px-30
+      h2.text-3xl.font-bold.mb-6 My reviews
+      .max-h-130.overflow-x-auto
+        table#proposals-table.min-w-full.divide-y-2.divide-gray-200
+          thead(class="sticky top-0 bg-white ltr\:text-left rtl\:text-right")
+            tr(class="*\:font-medium *\:text-gray-900")
+              th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="title")
+                | Title 
+                span.sort-icon
+              th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="state")
+                | State 
+                span.sort-icon
+              th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="thematicLine")
+                | Thematic Line 
+                span.sort-icon
+          tbody.divide-y.divide-gray-200
+            each proposal in proposalsData
+              tr.proposal-row(data-proposal-id=proposal.id)
+                td.px-3.py-2.max-w-100 #[a(href="#" data-proposalId=proposal.id class="proposalDetails hover:text-gray-900 hover:underline")= proposal.title]
+                td.px-3.py-2.whitespace-nowrap= proposal.state
+                td.px-3.py-2.max-w-80= proposal.thematicLine.thematicLine
+      div.border.border-gray-100.bg-gray-50.p-4.rounded.mt-16
+        h3.text-2xl.font-bold.my-6 Proposal details
+        #proposalActions(style="display: none;")
+          #abstract.prose.max-w-none.mt-8.mb-4
+          .grid.grid-cols-2.gap-8
+            div
+              #reviewerDetails
+                h4.text-lg.font-bold.mb-2 Historial de comentarios
+                ul#commentsHistory.space-y-2.mb-4
+              
+              #reviewerComments
+                form#reviewerCommentForm(method="POST")
+                  label.block.text-sm.font-medium.text-gray-700(for="reviewerStateSelect") Estado de la propuesta
+                  select#reviewerStateSelect.mt-1.mb-4.block.w-full.rounded-md.border-gray-300.shadow-sm(name="state")
+                    option(value="Enviado") Enviado
+                    option(value="En proceso") En proceso
+                    option(value="Aceptado") Aceptado
+                    option(value="Aceptado con recomendaciones") Aceptado con recomendaciones
+                    option(value="Rechazado") Rechazado
+                  label.block.text-sm.font-medium.text-gray-700(for="reviewerComment") Comentario
+                  textarea#reviewerComment.mt-1.mb-4.block.w-full.rounded-md.border-gray-300.shadow-sm(name="comment" rows="3")
+                  button.inline-flex.items-center.justify-center.rounded-md.bg-indigo-600.px-4.py-2.text-sm.font-semibold.text-white.shadow-sm(type="submit") Guardar comentario
+                  #reviewerCommentFeedback.mt-2.text-sm
+
+  script.
+    document.addEventListener('DOMContentLoaded', () => {
+      const proposalDetailsLinks = document.querySelectorAll('.proposalDetails');
+      const proposalActionsDiv = document.querySelector('#proposalActions');
+      const abstractDiv = document.querySelector('#abstract');
+      const reviewerStateSelect = document.querySelector('#reviewerStateSelect');
+      const reviewerCommentForm = document.querySelector('#reviewerCommentForm');
+      const reviewerComment = document.querySelector('#reviewerComment');
+      const reviewerCommentFeedback = document.querySelector('#reviewerCommentFeedback');
+      const reviewerDetails = document.querySelector('#reviewerDetails');
+      const commentsHistory = document.querySelector('#commentsHistory');
+      let currentProposalId = null;
+
+      proposalDetailsLinks.forEach(link => {
+        link.addEventListener('click', async (event) => {
+          event.preventDefault();
+          const proposalId = link.dataset.proposalid;
+          currentProposalId = proposalId;
+          try {
+            const response = await fetch(`/cf/dashboard/proposals/${proposalId}`);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const proposalData = await response.json();
+            abstractDiv.innerHTML = proposalData.proposal;
+            // Set current state in select
+            if (reviewerStateSelect) reviewerStateSelect.value = proposalData.state;
+            proposalActionsDiv.style.display = 'block';
+            // Fetch and render comments history
+            if (commentsHistory) {
+              commentsHistory.innerHTML = '<li>Cargando comentarios...</li>';
+              try {
+                const commentsRes = await fetch(`/cf/dashboard/proposals/${proposalId}/comments`);
+                if (!commentsRes.ok) throw new Error('No se pudo cargar el historial');
+                const comments = await commentsRes.json();
+                if (comments.length === 0) {
+                  commentsHistory.innerHTML = '<li class="text-gray-500">Sin comentarios</li>';
+                } else {
+                  commentsHistory.innerHTML = comments.map(c => `<li class="border rounded p-2 bg-gray-50"><span class="font-semibold">${c.userName || 'Usuario'}:</span> ${c.comment} <span class="block text-xs text-gray-400">${new Date(c.createdAt).toLocaleString()}</span></li>`).join('');
+                }
+              } catch (e) {
+                commentsHistory.innerHTML = '<li class="text-red-600">Error al cargar comentarios</li>';
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching proposal details:', error);
+            alert('Could not load proposal details.');
+          }
+        });
+      });
+
+      if (reviewerCommentForm) {
+        reviewerCommentForm.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          if (!currentProposalId) return;
+          const state = reviewerStateSelect.value;
+          const comment = reviewerComment.value.trim();
+          if (!comment) {
+            reviewerCommentFeedback.textContent = 'El comentario es obligatorio.';
+            reviewerCommentFeedback.className = 'mt-2 text-sm text-red-600';
+            return;
+          }
+          try {
+            const response = await fetch(`/cf/dashboard/proposals/${currentProposalId}/review-comment`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ state, comment })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Error al guardar el comentario');
+            reviewerCommentFeedback.textContent = result.message;
+            reviewerCommentFeedback.className = 'mt-2 text-sm text-green-600';
+          } catch (error) {
+            reviewerCommentFeedback.textContent = error.message;
+            reviewerCommentFeedback.className = 'mt-2 text-sm text-red-600';
+          }
+        });
+      }
+    });
+

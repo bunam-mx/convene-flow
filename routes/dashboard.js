@@ -43,7 +43,9 @@ module.exports = (app) => {
           return res.render("login", { responseMessage });
         }
 
-        req.session.email = user.email; // Store the user email in session
+        req.session.email = user.email;
+        req.session.userType = user.userType;
+        req.session.userId = user.id;
         res.redirect("/cf/dashboard/home");
       } catch (err) {
         console.error("Error en signin:", err);
@@ -312,7 +314,87 @@ module.exports = (app) => {
     }
   });
 
-  app.get("/cf/dashboard/flow", (req, res) => {
-    res.render("flow", { user: req.session.user });
+  app.get("/cf/dashboard/my-reviews", async (req, res) => {
+    try {
+      const reviewerId = req.session.userId;
+      if (!reviewerId) {
+        return res.status(401).send("Unauthorized");
+      }
+      const proposalsData = await db.proposals.findAll({
+        attributes: ["id", "title", "state", "editable"],
+        include: [
+          {
+            model: db.thematicLines,
+            as: "thematicLine",
+            attributes: ["thematicLine"],
+            required: true,
+          },
+          {
+            model: db.users,
+            as: "reviewers",
+            attributes: [],
+            where: { id: reviewerId },
+            through: { attributes: [] },
+            required: true
+          }
+        ],
+      });
+      res.render("my-reviews", { proposalsData });
+    } catch (err) {
+      console.error("Error fetching my reviews:", err);
+      res.status(500).send("Error interno del servidor");
+    }
+  });
+
+  app.post("/cf/dashboard/proposals/:id/review-comment", async (req, res) => {
+    try {
+      const proposalId = req.params.id;
+      const { state, comment } = req.body;
+      const userId = req.session.userId;
+      if (!userId) return res.status(401).json({ message: "No autorizado" });
+      if (!comment) return res.status(400).json({ message: "El comentario es obligatorio." });
+      // Guardar comentario en proposalHistories
+      await db.proposalHistories.create({
+        comment,
+        userId,
+        proposalId
+      });
+      // Actualizar estado de la propuesta
+      if (state) {
+        await db.proposals.update({ state }, { where: { id: proposalId } });
+      }
+      res.status(200).json({ message: "Comentario guardado correctamente." });
+    } catch (err) {
+      console.error("Error guardando comentario de revisión:", err);
+      res.status(500).json({ message: "Error interno del servidor" });
+    }
+  });
+
+  app.get("/cf/dashboard/proposals/:id/comments", async (req, res) => {
+    try {
+      const proposalId = req.params.id;
+      const histories = await db.proposalHistories.findAll({
+        where: { proposalId },
+        order: [["createdAt", "DESC"]],
+        include: [{
+          model: db.users,
+          attributes: ["id"],
+          include: [{
+            model: db.sigecos,
+            as: 'sigeco',
+            attributes: ["name", "lastname"]
+          }]
+        }]
+      });
+      const result = histories.map(h => ({
+        comment: h.comment,
+        createdAt: h.createdAt,
+        userName: h.user && h.user.sigeco ? `${h.user.sigeco.name} ${h.user.sigeco.lastname}` : undefined
+      }));
+      res.json(result);
+    } catch (err) {
+      console.error("Error fetching proposal comments:", err);
+      res.status(500).json([]);
+    }
   });
 };
