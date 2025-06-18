@@ -22,6 +22,7 @@ db.users = require("./models/users")(sequelize, Sequelize);
 db.proposals = require("./models/proposals")(sequelize, Sequelize);
 db.sigecos = require("./models/sigecos")(sequelize, Sequelize);
 db.thematicLines = require("./models/thematicLines")(sequelize, Sequelize);
+db.proposalHistories = require("./models/proposalHistories")(sequelize, Sequelize);
 
 // Llamar a los métodos associate si existen
 Object.keys(db).forEach(modelName => {
@@ -32,7 +33,7 @@ Object.keys(db).forEach(modelName => {
 
 sequelize
   .sync({
-    alter: false, // Cambiado a false para evitar alteraciones automáticas
+    alter: true, // Cambiado a false para evitar alteraciones automáticas
   })
   .then(() => {
     console.log("Database & tables updated!");

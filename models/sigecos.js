@@ -1,5 +1,5 @@
 module.exports = (sequelize, type) => {
-  return sequelize.define("sigeco", {
+  const Sigeco = sequelize.define("sigeco", {
     id: {
       type: type.INTEGER,
       primaryKey: true,
@@ -16,5 +16,21 @@ module.exports = (sequelize, type) => {
       "DOCTORADO",
       "OTRO"
     ),
+    userId: {
+      type: type.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'users',
+        key: 'id'
+      }
+    }
   });
+
+  Sigeco.associate = (models) => {
+    Sigeco.belongsTo(models.users, {
+      foreignKey: 'userId'
+    });
+  };
+
+  return Sigeco;
 };

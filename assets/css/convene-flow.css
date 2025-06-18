@@ -6,7 +6,7 @@ body {
   color: rgb(70, 70, 70);
 }
 
-table#users thead i {
+table thead i {
   color: rgb(70, 70, 70);
   margin-left: 1rem;
 }

@@ -1,0 +1,279 @@
+extends layout
+
+block content
+  .flex
+    //- Include the menu block component
+    include components/menuBlock.pug
+
+    //- Main content area
+    .flex-1.py-4.px-30
+      h2.text-3xl.font-bold.mb-6 Proposals
+      .max-h-130.overflow-x-auto
+        table#proposals-table.min-w-full.divide-y-2.divide-gray-200
+          thead(class="sticky top-0 bg-white ltr\:text-left rtl\:text-right")
+            tr(class="*\:font-medium *\:text-gray-900")
+              th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="title")
+                | Title 
+                span.sort-icon
+              th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="state")
+                | State 
+                span.sort-icon
+              th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="thematicLine")
+                | Thematic Line 
+                span.sort-icon
+              th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="users")
+                | Users 
+                span.sort-icon
+              th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="editable")
+                | Editable 
+                span.sort-icon
+          tbody.divide-y.divide-gray-200
+            each proposal in proposalsData
+              tr.proposal-row(data-proposal-id=proposal.id)
+                td.px-3.py-2.max-w-100 #[a(href="#" data-proposalId=proposal.id class="proposalDetails hover:text-gray-900 hover:underline")= proposal.title]
+                td.px-3.py-2.whitespace-nowrap= proposal.state
+                td.px-3.py-2.max-w-80= proposal.thematicLine.thematicLine
+                td.px-3.py-2.whitespace-nowrap
+                  each user in proposal.authors
+                    span.block= `${user.sigeco.name} ${user.sigeco.lastname}`
+                td.px-3.py-2.whitespace-nowrap
+                  if proposal.editable
+                    i.fas.fa-check-circle(data-editable="true")
+                  else
+                    i.fas.fa-minus-circle.text-red-700(data-editable="false")
+      div.border.border-gray-100.bg-gray-50.p-4.rounded.mt-16
+          h3.text-2xl.font-bold.my-6 Proposal details
+          #proposalActions(style="display: none;")
+            .grid.grid-cols-2.gap-8
+              div
+                #reviewerDetails
+                  h4.text-xl.font-bold.mb-4 Reviewer
+                  form#assignReviewerForm(method="POST")
+                    input(type="hidden" name="proposalId" id="proposalIdInput")
+                    .flex.items-center.gap-4
+                      div.flex-1
+                        label.block.text-sm.font-medium.text-gray-700(for="reviewerSelect") Assign reviewer
+                        select#reviewerSelect(class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" name="reviewerId")
+                          option(value="") Select a reviewer
+                      div
+                        button.mt-5.inline-flex.items-center.justify-center.rounded-md.bg-indigo-600.px-4.py-2.text-sm.font-semibold.text-white.shadow-sm(type="submit") Assign
+                    #reviewerFeedback.mt-2.text-sm
+              div
+                #stateDetails
+                  h4.text-xl.font-bold.mb-4 Proposal State
+                  form#updateStateForm(method="POST")
+                    .flex.items-center.gap-4
+                      div.flex-1
+                        label.block.text-sm.font-medium.text-gray-700(for="stateSelect") Change state
+                        select#stateSelect.mt-1.block.w-full.rounded-md.border-gray-300.shadow-sm(name="state")
+                          option(value="Enviado") Enviado
+                          option(value="En proceso") En proceso
+                          option(value="Aceptado") Aceptado
+                          option(value="Aceptado con recomendaciones") Aceptado con recomendaciones
+                          option(value="Rechazado") Rechazado
+                      div
+                        button.mt-5.inline-flex.items-center.justify-center.rounded-md.bg-blue-600.px-4.py-2.text-sm.font-semibold.text-white.shadow-sm(type="submit") Update State
+                    #stateFeedback.mt-2.text-sm
+            #abstract.prose.max-w-none.mt-8.mb-4
+
+  script.
+    document.addEventListener('DOMContentLoaded', () => {
+      const table = document.querySelector('#proposals-table');
+      const headers = table.querySelectorAll('th[data-sort]');
+      const tbody = table.querySelector('tbody');
+      let currentSortColumn = null;
+      let currentSortOrder = 'asc';
+
+      headers.forEach((header, index) => {
+        header.addEventListener('click', () => {
+          const sortKey = header.dataset.sort;
+
+          if (currentSortColumn === sortKey) {
+            currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+          } else {
+            currentSortColumn = sortKey;
+            currentSortOrder = 'asc';
+          }
+
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+          rows.sort((a, b) => {
+            let valA, valB;
+
+            if (sortKey === 'editable') {
+              valA = a.cells[index].querySelector('i').dataset.editable;
+              valB = b.cells[index].querySelector('i').dataset.editable;
+            } else {
+              valA = a.cells[index].textContent.trim().toLowerCase();
+              valB = b.cells[index].textContent.trim().toLowerCase();
+            }
+
+            if (valA < valB) {
+              return currentSortOrder === 'asc' ? -1 : 1;
+            }
+            if (valA > valB) {
+              return currentSortOrder === 'asc' ? 1 : -1;
+            }
+            return 0;
+          });
+
+          rows.forEach(row => tbody.appendChild(row));
+
+          headers.forEach(h => {
+            const iconSpan = h.querySelector('.sort-icon');
+            if (iconSpan) {
+              iconSpan.innerHTML = '';
+            }
+          });
+
+          const currentIconSpan = header.querySelector('.sort-icon');
+          if (currentIconSpan) {
+            if (currentSortOrder === 'asc') {
+              currentIconSpan.innerHTML = ' <i class="fas fa-sort-alpha-down"></i>';
+            } else {
+              currentIconSpan.innerHTML = ' <i class="fas fa-sort-alpha-down-alt"></i>';
+            }
+          }
+        });
+      });
+
+      const proposalDetailsLinks = document.querySelectorAll('.proposalDetails');
+      const proposalActionsDiv = document.querySelector('#proposalActions');
+      const abstractDiv = document.querySelector('#abstract');
+      const assignReviewerForm = document.querySelector('#assignReviewerForm');
+      const reviewerSelect = document.querySelector('#reviewerSelect');
+      const proposalIdInput = document.querySelector('#proposalIdInput');
+      const reviewerFeedback = document.querySelector('#reviewerFeedback');
+
+      const updateStateForm = document.querySelector('#updateStateForm');
+      const stateSelect = document.querySelector('#stateSelect');
+      const stateFeedback = document.querySelector('#stateFeedback');
+
+      proposalDetailsLinks.forEach(link => {
+        link.addEventListener('click', async (event) => {
+          event.preventDefault();
+          const proposalId = link.dataset.proposalid;
+
+          // Reset form and feedback
+          reviewerFeedback.innerHTML = '';
+          stateFeedback.innerHTML = '';
+          proposalIdInput.value = proposalId;
+
+          try {
+            // Fetch proposal data and reviewers in parallel
+            const [proposalResponse, reviewersResponse] = await Promise.all([
+              fetch(`/cf/dashboard/proposals/${proposalId}`),
+              fetch('/cf/dashboard/reviewers')
+            ]);
+
+            if (!proposalResponse.ok) throw new Error('Network response was not ok for proposal details');
+            if (!reviewersResponse.ok) throw new Error('Network response was not ok for reviewers');
+
+            const proposalData = await proposalResponse.json();
+            const reviewers = await reviewersResponse.json();
+
+            // Populate abstract
+            abstractDiv.innerHTML = proposalData.proposal;
+
+            // Populate state
+            stateSelect.value = proposalData.state;
+
+            // Populate reviewers dropdown
+            reviewerSelect.innerHTML = '<option value="">Select a reviewer</option>';
+            reviewers.forEach(reviewer => {
+              const option = document.createElement('option');
+              option.value = reviewer.id;
+              option.textContent = `${reviewer.sigeco.name} ${reviewer.sigeco.lastname}`;
+              reviewerSelect.appendChild(option);
+            });
+
+            // Set current reviewer if assigned
+            if (proposalData.reviewers && proposalData.reviewers.length > 0) {
+              const assignedReviewerId = proposalData.reviewers[0].id;
+              reviewerSelect.value = assignedReviewerId;
+            } else {
+              reviewerSelect.value = "";
+            }
+
+            // Show the actions div
+            proposalActionsDiv.style.display = 'block';
+
+          } catch (error) {
+            console.error('Error fetching proposal details:', error);
+            alert('Could not load proposal details.');
+          }
+        });
+      });
+
+      // Handle form submission
+      assignReviewerForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const proposalId = proposalIdInput.value;
+        const reviewerId = reviewerSelect.value;
+
+        if (!reviewerId) {
+            reviewerFeedback.textContent = 'Please select a reviewer.';
+            reviewerFeedback.className = 'mt-2 text-sm text-red-600';
+            return;
+        }
+
+        try {
+          const response = await fetch(`/cf/dashboard/proposals/${proposalId}/assign-reviewer`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ reviewerId }),
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.message || 'Failed to assign reviewer');
+          }
+
+          reviewerFeedback.textContent = result.message;
+          reviewerFeedback.className = 'mt-2 text-sm text-green-600';
+
+        } catch (error) {
+          console.error('Error assigning reviewer:', error);
+          reviewerFeedback.textContent = error.message;
+          reviewerFeedback.className = 'mt-2 text-sm text-red-600';
+        }
+      });
+
+      updateStateForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const proposalId = proposalIdInput.value;
+        const state = stateSelect.value;
+
+        try {
+          const response = await fetch(`/cf/dashboard/proposals/${proposalId}/update-state`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ state }),
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.message || 'Failed to update state');
+          }
+
+          stateFeedback.textContent = result.message;
+          stateFeedback.className = 'mt-2 text-sm text-green-600';
+
+          // Update the table view
+          const row = document.querySelector(`tr[data-proposal-id="${proposalId}"]`);
+          if (row) {
+            row.cells[1].textContent = state;
+          }
+
+        } catch (error) {
+          console.error('Error updating state:', error);
+          stateFeedback.textContent = error.message;
+          stateFeedback.className = 'mt-2 text-sm text-red-600';
+        }
+      });
+    });

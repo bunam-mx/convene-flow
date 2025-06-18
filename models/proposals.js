@@ -37,9 +37,17 @@ module.exports = (sequelize, DataTypes) => {
 
   Proposals.associate = (models) => {
     Proposals.belongsToMany(models.users, {
-      through: 'userProposals', // Nombre de la tabla de unión
+      through: 'userProposals', // Tabla para autores
       foreignKey: 'proposalId',
       otherKey: 'userId',
+      as: 'authors', // Alias para la relación de autores
+      timestamps: false
+    });
+    Proposals.belongsToMany(models.users, {
+      through: 'reviewerProposals', // Tabla para revisores
+      foreignKey: 'proposalId',
+      otherKey: 'userId',
+      as: 'reviewers', // Alias para la relación de revisores
       timestamps: false
     });
     Proposals.belongsTo(models.thematicLines, { // Add this association

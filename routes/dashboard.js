@@ -100,14 +100,6 @@ module.exports = (app) => {
     }
   });
 
-  app.get("/cf/dashboard/statistics", (req, res) => {
-    res.render("statistics", { user: req.session.user });
-  });
-
-  app.get("/cf/dashboard/flow", (req, res) => {
-    res.render("flow", { user: req.session.user });
-  });
-
   app.route("/cf/dashboard/users/:id").post(async function (req, res) {
     try {
       const id = req.params.id;
@@ -186,5 +178,141 @@ module.exports = (app) => {
       console.error("Error fetching user data:", err);
       res.status(500).json({ error: "Internal server error" });
     }
+  });
+
+  app.get("/cf/dashboard/proposals", async (req, res) => {
+    try {
+      const proposalsData = await db.proposals.findAll({
+        attributes: ["id", "title", "state", "editable"],
+        include: [
+          {
+            model: db.thematicLines,
+            as: "thematicLine",
+            attributes: ["thematicLine"],
+            required: true,
+          },
+          {
+            model: db.users,
+            as: "authors",
+            attributes: ["id"],
+            include: [
+              {
+                model: db.sigecos,
+                attributes: ["name", "lastname"],
+                required: true,
+              },
+            ],
+            through: {
+              attributes: [],
+            },
+          },
+        ],
+      });
+      console.log("Proposals Data:", proposalsData);
+      res.render("proposals", { proposalsData });
+    } catch (err) {
+      console.error("Error fetching proposals data:", err);
+      res.status(500).send("Error interno del servidor");
+    }
+  });
+
+  app.get("/cf/dashboard/reviewers", async (req, res) => {
+    try {
+      const reviewers = await db.users.findAll({
+        where: { userType: "review" },
+        attributes: ["id"],
+        include: [{
+          model: db.sigecos,
+          attributes: ["name", "lastname"],
+          required: true
+        }]
+      });
+      res.status(200).json(reviewers);
+    } catch (err) {
+      console.error("Error fetching reviewers:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/cf/dashboard/proposals/:id/assign-reviewer", async (req, res) => {
+    try {
+      const proposalId = req.params.id;
+      const { reviewerId } = req.body;
+
+      if (!reviewerId) {
+        return res.status(400).json({ error: "Reviewer ID is required." });
+      }
+
+      const proposal = await db.proposals.findByPk(proposalId);
+      if (!proposal) {
+        return res.status(404).json({ error: "Proposal not found." });
+      }
+
+      await proposal.setReviewers([reviewerId]);
+
+      res.status(200).json({ message: "Reviewer assigned successfully." });
+
+    } catch (err) {
+      console.error("Error assigning reviewer:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/cf/dashboard/proposals/:id/update-state", async (req, res) => {
+    try {
+      const proposalId = req.params.id;
+      const { state } = req.body;
+
+      if (!state) {
+        return res.status(400).json({ message: "State is required." });
+      }
+
+      const proposal = await db.proposals.findByPk(proposalId);
+      if (!proposal) {
+        return res.status(404).json({ message: "Proposal not found." });
+      }
+
+      // Si el cambio es de 'En proceso' a 'Enviado', editable = 0
+      let updateFields = { state };
+      if (proposal.state === 'En proceso' && state === 'Enviado') {
+        updateFields.editable = 0;
+      }
+
+      await proposal.update(updateFields);
+
+      res.status(200).json({ message: "Proposal state updated successfully." });
+    } catch (err) {
+      console.error("Error updating proposal state:", err);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/cf/dashboard/proposals/:id", async (req, res) => {
+    try {
+      const proposalId = req.params.id;
+      const proposalData = await db.proposals.findOne({
+        where: { id: proposalId },
+        attributes: ["id", "proposal", "state"],
+        include: [{
+          model: db.users,
+          as: 'reviewers',
+          attributes: ['id'],
+          through: { attributes: [] }
+        }]
+      });
+
+      if (!proposalData) {
+        return res.status(404).json({ error: "Proposal not found" });
+      }
+
+      res.status(200).json(proposalData);
+    } catch (err) {
+      console.error("Error fetching proposal details:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/cf/dashboard/flow", (req, res) => {
+    res.render("flow", { user: req.session.user });
   });
 };
