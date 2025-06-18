@@ -1,0 +1,32 @@
+extends layout
+
+block content
+  .flex
+    //- Include the menu block component
+    include components/menuBlock.pug
+
+    //- Main content area
+    .flex-1.py-4.px-30
+      h2.text-3xl.font-bold.mb-6 Reviewers and assigned proposals
+      .max-h-130.overflow-x-auto
+        table#reviewers-table.min-w-full.divide-y-2.divide-gray-200
+          thead(class="sticky top-0 bg-white ltr:text-left rtl:text-right")
+            tr(class="*\:font-medium *\:text-gray-900")
+              th.px-3.py-2.whitespace-nowrap Reviewer
+              th.px-3.py-2.whitespace-nowrap Email
+              th.px-3.py-2.whitespace-nowrap Proposals assigned
+          tbody.divide-y.divide-gray-200
+            each reviewer in reviewers
+              tr
+                td.px-3.py-2
+                  | #{reviewer.sigeco ? reviewer.sigeco.name + ' ' + reviewer.sigeco.lastname : '-'}
+                td.px-3.py-2= reviewer.email
+                td.px-3.py-2
+                  if reviewer.reviewProposals && reviewer.reviewProposals.length
+                    ul.list-disc.list-inside
+                      each proposal in reviewer.reviewProposals
+                        li
+                          span.font-semibold= proposal.title
+                          |  (#{proposal.state})
+                  else
+                    span.text-gray-400 No proposals assigned

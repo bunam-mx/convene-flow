@@ -397,4 +397,32 @@ module.exports = (app) => {
       res.status(500).json([]);
     }
   });
+
+  app.get("/cf/dashboard/reviewers-list", async (req, res) => {
+    try {
+      const reviewers = await db.users.findAll({
+        where: { userType: "review" },
+        attributes: ["id", "email"],
+        include: [
+          {
+            model: db.sigecos,
+            as: 'sigeco',
+            attributes: ["name", "lastname"]
+          },
+          {
+            model: db.proposals,
+            as: "reviewProposals",
+            attributes: ["id", "title", "state"],
+            through: { attributes: [] }
+          }
+        ]
+      });
+      res.render("reviewers-list", { reviewers });
+    } catch (err) {
+      console.error("Error fetching reviewers list:", err);
+      res.status(500).send("Error interno del servidor");
+    }
+  });
+
+  
 };

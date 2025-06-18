@@ -85,6 +85,15 @@ module.exports = (sequelize, type) => {
       otherKey: 'proposalId',
       timestamps: false
     });
+
+    // Relación muchos a muchos con Proposals (como revisor)
+    Users.belongsToMany(models.proposals, {
+      through: 'reviewerProposals',
+      as: 'reviewProposals',
+      foreignKey: 'userId',
+      otherKey: 'proposalId',
+      timestamps: false
+    });
   };
 
   return Users;
