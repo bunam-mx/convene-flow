@@ -1,55 +1,55 @@
 extends layout
 
+block menu 
+  include components/menuBlock.pug
+block title
+  header.py-4.px-30
+    h1.text-4xl.font-bold.mb-6 #[span AIESAD] 2025
 block content
-  .flex
-    //- Include the menu block component
-    include components/menuBlock.pug
-
-    //- Main content area
-    .flex-1.py-4.px-30
-      h2.text-3xl.font-bold.mb-6 My reviews
-      .max-h-130.overflow-x-auto
-        table#proposals-table.min-w-full.divide-y-2.divide-gray-200
-          thead(class="sticky top-0 bg-white ltr\:text-left rtl\:text-right")
-            tr(class="*\:font-medium *\:text-gray-900")
-              th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="title")
-                | Title 
-                span.sort-icon
-              th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="state")
-                | State 
-                span.sort-icon
-              th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="thematicLine")
-                | Thematic Line 
-                span.sort-icon
-          tbody.divide-y.divide-gray-200
-            each proposal in proposalsData
-              tr.proposal-row(data-proposal-id=proposal.id)
-                td.px-3.py-2.max-w-100 #[a(href="#" data-proposalId=proposal.id class="proposalDetails hover:text-gray-900 hover:underline")= proposal.title]
-                td.px-3.py-2.whitespace-nowrap= proposal.state
-                td.px-3.py-2.max-w-80= proposal.thematicLine.thematicLine
-      div.border.border-gray-100.bg-gray-50.p-4.rounded.mt-16
-        h3.text-2xl.font-bold.my-6 Proposal details
-        #proposalActions(style="display: none;")
-          #abstract.prose.max-w-none.mt-8.mb-4
-          .grid.grid-cols-2.gap-8
-            div
-              #reviewerDetails
-                h4.text-lg.font-bold.mb-2 Historial de comentarios
-                ul#commentsHistory.space-y-2.mb-4
-              
-              #reviewerComments
-                form#reviewerCommentForm(method="POST")
-                  label.block.text-sm.font-medium.text-gray-700(for="reviewerStateSelect") Estado de la propuesta
-                  select#reviewerStateSelect.mt-1.mb-4.block.w-full.rounded-md.border-gray-300.shadow-sm(name="state")
-                    option(value="Enviado") Enviado
-                    option(value="En proceso") En proceso
-                    option(value="Aceptado") Aceptado
-                    option(value="Aceptado con recomendaciones") Aceptado con recomendaciones
-                    option(value="Rechazado") Rechazado
-                  label.block.text-sm.font-medium.text-gray-700(for="reviewerComment") Comentario
-                  textarea#reviewerComment.mt-1.mb-4.block.w-full.rounded-md.border-gray-300.shadow-sm(name="comment" rows="3")
-                  button.inline-flex.items-center.justify-center.rounded-md.bg-indigo-600.px-4.py-2.text-sm.font-semibold.text-white.shadow-sm(type="submit") Guardar comentario
-                  #reviewerCommentFeedback.mt-2.text-sm
+  .flex-1.py-4.px-30
+    h2.text-3xl.font-bold.mb-6 Mis revisiones
+    .max-h-130.overflow-x-auto
+      table#proposals-table.min-w-full.divide-y-2.divide-gray-200
+        thead(class="sticky top-0 bg-white ltr\:text-left rtl\:text-right")
+          tr(class="*\:font-medium *\:text-gray-900")
+            th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="title")
+              | Título
+              span.sort-icon
+            th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="state")
+              | Estado
+              span.sort-icon
+            th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="thematicLine")
+              | Línea temática
+              span.sort-icon
+        tbody.divide-y.divide-gray-200
+          each proposal in proposalsData
+            tr.proposal-row(data-proposal-id=proposal.id)
+              td.px-3.py-2.max-w-100 #[a(href="#" data-proposalId=proposal.id class="proposalDetails hover:text-gray-900 hover:underline")= proposal.title]
+              td.px-3.py-2.whitespace-nowrap= proposal.state
+              td.px-3.py-2.max-w-80= proposal.thematicLine.thematicLine
+    div.border.border-gray-100.bg-gray-50.p-4.rounded.mt-16
+      h3.text-2xl.font-bold.my-6 Detalles de la propuesta
+      #proposalActions(style="display: none;")
+        #abstract.prose.max-w-none.mt-8.mb-4
+        .grid.grid-cols-2.gap-8
+          div
+            #reviewerDetails
+              h4.text-lg.font-bold.mb-2 Historial de comentarios
+              ul#commentsHistory.space-y-2.mb-4
+            
+            #reviewerComments
+              form#reviewerCommentForm(method="POST")
+                label.block.text-sm.font-medium.text-gray-700(for="reviewerStateSelect") Estado de la propuesta
+                select#reviewerStateSelect.mt-1.mb-4.block.w-full.rounded-md.border-gray-300.shadow-sm(name="state")
+                  option(value="Enviado") Enviado
+                  option(value="En proceso") En proceso
+                  option(value="Aceptado") Aceptado
+                  option(value="Aceptado con recomendaciones") Aceptado con recomendaciones
+                  option(value="Rechazado") Rechazado
+                label.block.text-sm.font-medium.text-gray-700(for="reviewerComment") Comentario
+                textarea#reviewerComment.mt-1.mb-4.block.w-full.rounded-md.border-gray-300.shadow-sm(name="comment" rows="3")
+                button.inline-flex.items-center.justify-center.rounded-md.bg-indigo-600.px-4.py-2.text-sm.font-semibold.text-white.shadow-sm(type="submit") Guardar comentario
+                #reviewerCommentFeedback.mt-2.text-sm
 
   script.
     document.addEventListener('DOMContentLoaded', () => {

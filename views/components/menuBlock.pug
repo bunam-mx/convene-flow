@@ -1,44 +1,44 @@
-div(class="fixed flex h-screen w-16 flex-col justify-between border-e border-gray-100 bg-white")
+nav(class="fixed flex h-screen w-16 flex-col justify-between border-e border-gray-100 bg-white")
   div
     div(class="inline-flex size-16 items-center justify-center")
-      span(class="grid size-10 place-content-center rounded-lg bg-gray-100 text-xs text-gray-600") CF
+      span(class="grid size-10 place-content-center rounded-lg bg-gray-100 text-xs text-gray-600") A
 
     div(class="border-t border-gray-100")
       div(class="px-2")
         div(class="py-4")
           a(href="/cf/dashboard/home" class="t group relative flex justify-center rounded-sm px-2 py-1.5 text-gray-500")
             i.fas.fa-home
-            span(class="invisible absolute start-full top-1/2 ms-4 -translate-y-1/2 rounded-sm bg-gray-900 px-2 py-1.5 text-xs font-medium text-white group-hover:visible") General
+            span(class="invisible absolute bg-gray-900 start-full top-1/2 ms-4 -translate-y-1/2 rounded-sm px-2 py-1.5 text-xs font-medium text-white group-hover:visible") General
 
         ul(class="space-y-1 border-t border-gray-100 pt-4")
           li.my-2
-            a(href="/cf/dashboard/users" class="group relative flex justify-center rounded-sm px-2 py-4 text-gray-500 hover:bg-gray-50 hover:text-gray-700")
+            a(href="/cf/dashboard/users" class="group relative flex justify-center rounded-sm px-2 py-4")
               i.fas.fa-users
-              span(class="invisible absolute start-full top-1/2 ms-4 -translate-y-1/2 rounded-sm bg-gray-900 px-2 py-1.5 text-xs font-medium text-white group-hover:visible") Users
+              span(class="invisible absolute bg-gray-900 start-full top-1/2 ms-4 -translate-y-1/2 rounded-sm px-2 py-1.5 text-xs font-medium text-white group-hover:visible") Asistentes
 
           li.my-2
-            a(href="/cf/dashboard/proposals" class="group relative flex justify-center rounded-sm px-2 py-4 text-gray-500 hover:bg-gray-50 hover:text-gray-700")
+            a(href="/cf/dashboard/proposals" class="group relative flex justify-center rounded-sm px-2 py-4")
               i.fas.fa-file-invoice
-              span(class="invisible absolute start-full top-1/2 ms-4 -translate-y-1/2 rounded-sm bg-gray-900 px-2 py-1.5 text-xs font-medium text-white group-hover:visible") Proposals
+              span(class="invisible absolute bg-gray-900 start-full top-1/2 ms-4 -translate-y-1/2 rounded-sm px-2 py-1.5 text-xs font-medium text-white group-hover:visible") Propuestas
 
           li.my-2
-            a(href="/cf/dashboard/my-reviews" class="group relative flex justify-center rounded-sm px-2 py-4 text-gray-500 hover:bg-gray-50 hover:text-gray-700")
+            a(href="/cf/dashboard/my-reviews" class="group relative flex justify-center rounded-sm px-2 py-4")
               i.fas.fa-user-edit
-              span(class="invisible absolute start-full top-1/2 ms-4 -translate-y-1/2 rounded-sm bg-gray-900 px-2 py-1.5 text-xs font-medium text-white group-hover:visible") My reviews
+              span(class="invisible absolute bg-gray-900 start-full top-1/2 ms-4 -translate-y-1/2 rounded-sm px-2 py-1.5 text-xs font-medium text-white group-hover:visible") Mis revisiones
 
           li.my-2
-            a(href="/cf/dashboard/reviewers-list" class="group relative flex justify-center rounded-sm px-2 py-4 text-gray-500 hover:bg-gray-50 hover:text-gray-700")
+            a(href="/cf/dashboard/reviewers-list" class="group relative flex justify-center rounded-sm px-2 py-4")
               i.fas.fa-users-cog
-              span(class="invisible absolute start-full top-1/2 ms-4 -translate-y-1/2 rounded-sm bg-gray-900 px-2 py-1.5 text-xs font-medium text-white group-hover:visible") Reviewers
+              span(class="invisible absolute bg-gray-900 start-full top-1/2 ms-4 -translate-y-1/2 rounded-sm px-2 py-1.5 text-xs font-medium text-white group-hover:visible") Revisores
 
           li.my-2
-            a(href="#" class="group relative flex justify-center rounded-sm px-2 py-4 text-gray-500 hover:bg-gray-50 hover:text-gray-700")
+            a(href="#" class="group relative flex justify-center rounded-sm px-2 py-4")
               svg(xmlns="http://www.w3.org/2000/svg" class="size-5 opacity-75" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2")
                 path(stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z")
-              span(class="invisible absolute start-full top-1/2 ms-4 -translate-y-1/2 rounded-sm bg-gray-900 px-2 py-1.5 text-xs font-medium text-white group-hover:visible") Account
+              span(class="invisible absolute bg-gray-900 start-full top-1/2 ms-4 -translate-y-1/2 rounded-sm px-2 py-1.5 text-xs font-medium text-white group-hover:visible") Mi perfil
 
   div(class="sticky inset-x-0 bottom-0 border-t border-gray-100 bg-white p-2")
-    a(href="#" class="group relative flex w-full justify-center rounded-lg px-2 py-1.5 text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-700")
+    a(href="#" class="group relative flex w-full justify-center rounded-lg px-2 py-1.5 text-sm")
       svg(xmlns="http://www.w3.org/2000/svg" class="size-5 opacity-75" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2")
         path(stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1")
-      span(class="invisible absolute start-full top-1/2 ms-4 -translate-y-1/2 rounded-sm bg-gray-900 px-2 py-1.5 text-xs font-medium text-white group-hover:visible") Logout
+      span(class="invisible absolute bg-gray-900 start-full top-1/2 ms-4 -translate-y-1/2 rounded-sm px-2 py-1.5 text-xs font-medium text-white group-hover:visible") Cerrar sesión

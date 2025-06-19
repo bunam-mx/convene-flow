@@ -6,21 +6,17 @@ block content
     div(class="w-1/2 flex items-center justify-center h-screen")
       .bg-white.shadow-md.rounded.p-8
         p #{responseMessage.status}
-        h2.text-2xl.font-bold.mb-6.text-center Convene#[span Flow]
+        h2.text-2xl.font-bold.mb-6.text-center AIESAD#[span 2025]
         if responseMessage.status == 'error'
-          .text-red-500.mb-4 Error: #{responseMessage.message}
-          script.
-            alert("Error: #{responseMessage.message}");
+          .text-red-500.mb-4 #{responseMessage.message}
         else if responseMessage.status == 'success'
-          .text-green-500.mb-4 Success: #{responseMessage.message}
-          script.
-            alert("Success: #{responseMessage.message}");
+          .text-green-500.mb-4 #{responseMessage.message}
         form(action="/cf" method="POST")
           .mb-4
-            label(for="email" class="block text-gray-700 text-sm font-bold mb-2") Email
-            input#email(type="email" name="email" required placeholder="Enter your email" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline")
+            label(for="email" class="block text-gray-700 text-sm font-bold mb-2") Correo electrónico
+            input#email(type="email" name="email" required placeholder="Ingrese su dirección de correo" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline")
           .mb-4
-            label(for="password" class="block text-gray-700 text-sm font-bold mb-2") Password
-            input#password(type="password" name="password" required placeholder="Enter your password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline")
+            label(for="password" class="block text-gray-700 text-sm font-bold mb-2") Contraseña
+            input#password(type="password" name="password" required placeholder="Ingrese su contraseña" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline")
           .flex.items-center.justify-end
             button(type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline") Acceder

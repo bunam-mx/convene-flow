@@ -1,12 +1,47 @@
+:root {
+    --aiesad-blue: #2e5dea;
+    --aiesad-darkblue: #2b344c;
+    --aiesad-yellow: #e2a817;
+    --aiesad-dark: #19151e;
+    --aiesad-white: #f9fafb;
+}
+
 body {
   font-family: "Red Hat Display", sans-serif;
   font-optical-sizing: auto;
   font-weight: 400;
   font-style: normal;
-  color: rgb(70, 70, 70);
+  color: rgb(82, 82, 82);
+}
+
+header h1 > span {
+  color: var(--aiesad-yellow);
+}
+
+#homeData span {
+  color: var(--aiesad-yellow);
+}
+
+nav a {
+  color: var(--aiesad-yellow)
+}
+nav a:hover {
+  color: var(--aiesad-darkblue);
+}
+
+h2 {
+  color: var(--aiesad-yellow);
 }
 
 table thead i {
   color: rgb(70, 70, 70);
   margin-left: 1rem;
+}
+
+#proposalActions H4 {
+  color: var(--aiesad-blue);
+}
+
+#abstract {
+  border-top: 1px solid #dbdbdb;
 }

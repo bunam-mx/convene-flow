@@ -1,83 +1,83 @@
 extends layout
 
+block menu 
+  include components/menuBlock.pug
+block title
+  header.py-4.px-30
+    h1.text-4xl.font-bold.mb-6 #[span AIESAD] 2025
 block content
-  .flex
-    //- Include the menu block component
-    include components/menuBlock.pug
-
-    //- Main content area
-    .flex-1.py-4.px-30
-      h2.text-3xl.font-bold.mb-6 Users Management
-      .max-h-130.overflow-x-auto
-        table#users.min-w-full.divide-y-2.divide-gray-200
-          thead(class="sticky top-0 bg-white ltr\:text-left rtl\:text-right")
-            tr(class="*\:font-medium *\:text-gray-900")
-              th.px-3.py-2.whitespace-nowrap Email
-              th.px-3.py-2.whitespace-nowrap Name
-              th.px-3.py-2.whitespace-nowrap Lastname
-              th.px-3.py-2.whitespace-nowrap Entity 
-              th.px-3.py-2.whitespace-nowrap Active
-          tbody.divide-y.divide-gray-200
-            each user in usersData
-              tr.user-row(data-user-id=user.id)
-                td.px-3.py-2.whitespace-nowrap #[a(href="#" data-userId=user.id class="userDetails hover:text-gray-900 hover:underline") #{user.email}]
-                td.px-3.py-2.whitespace-nowrap #{user.sigeco.name}
-                td.px-3.py-2.whitespace-nowrap #{user.sigeco.lastname}
-                td.px-3.py-2.whitespace-nowrap #{user.sigeco.entity}
-                td.px-3.py-2.whitespace-nowrap
-                  if user.active
-                    i.fas.fa-check-circle(data-active="A")
-                  else
-                    i.fas.fa-minus-circle.text-red-700(data-active="B")
-      div.border.border-gray-100.bg-gray-50.p-4.rounded.mt-16
-        h3.text-2xl.font-bold.my-6 User details
-        #userActions(style="display: none;")
-          .grid.grid-cols-2.gap-4
-            form#userForm(method="POST" action="")
-              .mb-4
-                label.block.text-sm.font-medium.text-gray-700 Email
-                input#email(name="email" type="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
-              .mb-4
-                label.block.text-sm.font-medium.text-gray-700 Name
-                input#name(name="name" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
-              .mb-4
-                label.block.text-sm.font-medium.text-gray-700 Lastname
-                input#lastname(name="lastname" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
-              .mb-4
-                label.block.text-sm.font-medium.text-gray-700 Entity
-                input#entity(name="entity" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
-              .mb-4
-                label.flex.items-center.text-sm.font-medium.text-gray-700
-                  input#active(name="active" type="checkbox" class="mr-2 leading-tight")
-                  span.text-gray-600 Active
-              .mb-4
-                label.block.text-sm.font-medium.text-gray-700 User Type
-                select#userType(name="userType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
-                  option(value="admin") Admin
-                  option(value="staff") Staff
-                  option(value="review") Review
-                  option(value="speaker") Speaker
-                  option(value="user") User
-              .mb-4
-                label.block.text-sm.font-medium.text-gray-700 Attendance Mode
-                select#attendanceMode(name="attendanceMode" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
-                  option(value="Presencial") Presencial
-                  option(value="Virtual") Virtual
-              .mb-4
-                label.block.text-sm.font-medium.text-gray-700 CURP
-                input#curp(name="curp" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
-              .mb-4
-                label.block.text-sm.font-medium.text-gray-700 Study Level
-                select#studyLevel(name="studyLevel" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
-                  option(value="LICENCIATURA") LICENCIATURA
-                  option(value="MAESTRÍA") MAESTRÍA
-                  option(value="DOCTORADO") DOCTORADO
-                  option(value="OTRO") OTRO
-              .mb-4.text-right
-                button#saveButton(type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2") Save
-                button#cancelButton(type="button" class="ml-3 inline-flex justify-center rounded-md border border-transparent bg-gray-300 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2") Cancel
-            #options
-              button#resendActivationButton(type="button" class="mr-3 inline-flex justify-center rounded-md border border-transparent bg-yellow-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled) Resend activation
+  .flex-1.py-4.px-30
+    h2.text-3xl.font-bold.mb-6 Asistentes
+    .max-h-130.overflow-x-auto
+      table#users.min-w-full.divide-y-2.divide-gray-200
+        thead(class="sticky top-0 bg-white ltr\:text-left rtl\:text-right")
+          tr(class="*\:font-medium *\:text-gray-900")
+            th.px-3.py-2.whitespace-nowrap Correo electrónico
+            th.px-3.py-2.whitespace-nowrap Nombre
+            th.px-3.py-2.whitespace-nowrap Apellido
+            th.px-3.py-2.whitespace-nowrap Entidad
+            th.px-3.py-2.whitespace-nowrap Activo
+        tbody.divide-y.divide-gray-200
+          each user in usersData
+            tr.user-row(data-user-id=user.id)
+              td.px-3.py-2.whitespace-nowrap #[a(href="#" data-userId=user.id class="userDetails hover:text-gray-900 hover:underline") #{user.email}]
+              td.px-3.py-2.whitespace-nowrap #{user.sigeco.name}
+              td.px-3.py-2.whitespace-nowrap #{user.sigeco.lastname}
+              td.px-3.py-2.whitespace-nowrap #{user.sigeco.entity}
+              td.px-3.py-2.whitespace-nowrap
+                if user.active
+                  i.fas.fa-check-circle(data-active="A")
+                else
+                  i.fas.fa-minus-circle.text-red-700(data-active="B")
+    div.border.border-gray-100.bg-gray-50.p-4.rounded.mt-16
+      h3.text-2xl.font-bold.my-6 Detalles del asistente
+      #userActions(style="display: none;")
+        .grid.grid-cols-2.gap-4
+          form#userForm(method="POST" action="")
+            .mb-4
+              label.block.text-sm.font-medium.text-gray-700 Correo electrónico
+              input#email(name="email" type="email" class="mt-1 block w-full p-3 rounded-md border border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
+            .mb-4
+              label.block.text-sm.font-medium.text-gray-700 Nombre
+              input#name(name="name" type="text" class="mt-1 block w-full p-3 rounded-md border border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
+            .mb-4
+              label.block.text-sm.font-medium.text-gray-700 Apellido
+              input#lastname(name="lastname" type="text" class="mt-1 block w-full p-3 rounded-md border border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
+            .mb-4
+              label.block.text-sm.font-medium.text-gray-700 Entidad
+              input#entity(name="entity" type="text" class="mt-1 block w-full p-3 rounded-md border border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
+            .mb-4
+              label.flex.items-center.text-sm.font-medium.text-gray-700.px-3
+                input#active(name="active" type="checkbox" class="mr-2 leading-tight")
+                span.text-gray-600 Activo
+            .mb-4
+              label.block.text-sm.font-medium.text-gray-700 Tipo de usuario
+              select#userType(name="userType" class="mt-1 block w-full p-3 rounded-md border border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
+                option(value="admin") ADMINISTRADOR
+                option(value="staff") STAFF
+                option(value="review") REVISOR
+                option(value="speaker") PONENTE
+                option(value="user") USUARIO
+            .mb-4
+              label.block.text-sm.font-medium.text-gray-700 Modo de asistencia
+              select#attendanceMode(name="attendanceMode" class="mt-1 block w-full p-3 rounded-md border border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
+                option(value="Presencial") PRESENCIAL
+                option(value="Virtual") VIRTUAL
+            .mb-4
+              label.block.text-sm.font-medium.text-gray-700 CURP
+              input#curp(name="curp" type="text" class="mt-1 block w-full p-3 rounded-md border border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
+            .mb-4
+              label.block.text-sm.font-medium.text-gray-700 Nivel de estudios
+              select#studyLevel(name="studyLevel" class="mt-1 block w-full p-3 rounded-md border border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required)
+                option(value="LICENCIATURA") LICENCIATURA
+                option(value="MAESTRÍA") MAESTRÍA
+                option(value="DOCTORADO") DOCTORADO
+                option(value="OTRO") OTRO
+            .mb-4.text-right
+              button#saveButton(type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2") Actualizar
+              button#cancelButton(type="button" class="ml-3 inline-flex justify-center rounded-md border border-transparent bg-gray-300 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2") Cancelar
+          #options
+            button#resendActivationButton(type="button" class="mr-3 inline-flex justify-center rounded-md border border-transparent bg-yellow-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled) Resend activation
               
               
 
