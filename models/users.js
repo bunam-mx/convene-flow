@@ -78,9 +78,10 @@ module.exports = (sequelize, type) => {
     // Relación uno a uno con Sigecos
     Users.hasOne(models.sigecos, { foreignKey: 'userId' }); 
 
-    // Relación muchos a muchos con Proposals
+    // Relación muchos a muchos con Proposals (como autor)
     Users.belongsToMany(models.proposals, {
       through: 'userProposals', // Mismo nombre de tabla de unión
+      as: 'authors', // <--- Alias obligatorio para evitar ambigüedad
       foreignKey: 'userId',
       otherKey: 'proposalId',
       timestamps: false

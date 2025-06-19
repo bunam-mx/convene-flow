@@ -27,26 +27,33 @@ module.exports = (app) => {
         // Verificar que los usuarios existan antes de asociarlos (opcional pero recomendado)
         const users = await db.users.findAll({ where: { id: userIds } });
         if (users.length !== userIds.length) {
-          // Rollback o manejo de error si algún usuario no existe
-          // Por simplicidad, aquí solo enviaremos un error, pero podrías querer eliminar la propuesta creada.
           await newProposal.destroy(); // Eliminar la propuesta si los usuarios no son válidos
           return res.status(400).json({ error: "Uno o más IDs de usuario no son válidos." });
         }
-        await newProposal.setUsers(userIds); // Sequelize maneja la tabla de unión
+        await newProposal.setAuthors(userIds); // ¡Usar el alias correcto!
       }
 
       // Opcional: Devolver la propuesta con los usuarios asociados
       const proposalWithAssociations = await db.proposals.findByPk(newProposal.id, {
-        include: [{
-          model: db.users,
-          attributes: ['id', 'email'], // Especifica qué atributos de usuario devolver
-          through: { attributes: [] } // No incluir atributos de la tabla de unión
-        },
-        {
-          model: db.thematicLines,
-          as: 'thematicLine', // Asegúrate de que este es el alias correcto
-          attributes: ['id', 'thematicLine'] // Especifica los atributos que necesitas de thematicLines
-        }]
+        include: [
+          {
+            model: db.users,
+            as: 'authors',
+            attributes: ['id', 'email'],
+            through: { attributes: [] }
+          },
+          {
+            model: db.users,
+            as: 'reviewers',
+            attributes: ['id', 'email'],
+            through: { attributes: [] }
+          },
+          {
+            model: db.thematicLines,
+            as: 'thematicLine',
+            attributes: ['id', 'thematicLine']
+          }
+        ]
       });
 
       res.status(201).json(proposalWithAssociations);
@@ -62,71 +69,76 @@ module.exports = (app) => {
 
   app.route("/api/proposals/:userId").get(async function (req, res) {
     const { userId } = req.params;
-    const { Sequelize } = require("sequelize"); // Import Sequelize for fn and col if needed, though Op is not used here directly
-
     if (!userId) {
       return res.status(400).json({ error: "El parámetro 'userId' es requerido." });
     }
-
     try {
+      // Buscar usuario y propuestas donde es autor
       const userWithProposals = await db.users.findByPk(userId, {
-        attributes: [], // We don't need the main user's attributes, just their proposals
-        include: [{
-          model: db.proposals,
-          attributes: ['id', 'title', 'proposal', 'state', 'editable', 'createdAt', 'updatedAt'], // ...existing code...
-          through: { attributes: [] }, // Don't include junction table attributes here
-          include: [{ // Include users (authors) for each proposal
-            model: db.users, // Users associated with the proposal
-            attributes: ['id'], // Only fetch ID from users table directly
-            through: { attributes: [] }, // Don't include junction table attributes here
-            include: [{ // Include sigecos for each author to get name and lastname
-              model: db.sigecos,
-              attributes: ['name', 'lastname']
-            }]
-          },
+        attributes: [],
+        include: [
           {
-            model: db.thematicLines,
-            as: 'thematicLine', // Asegúrate de que este es el alias correcto
-            attributes: ['id', 'thematicLine'] // Especifica los atributos que necesitas de thematicLines
-          }]
-        }]
+            model: db.proposals,
+            as: 'authors',
+            attributes: ['id', 'title', 'proposal', 'state', 'editable', 'createdAt', 'updatedAt'],
+            through: { attributes: [] },
+            include: [
+              {
+                model: db.users,
+                as: 'authors',
+                attributes: ['id'],
+                through: { attributes: [] },
+                include: [
+                  {
+                    model: db.sigecos,
+                    attributes: ['name', 'lastname']
+                  }
+                ]
+              },
+              {
+                model: db.thematicLines,
+                as: 'thematicLine',
+                attributes: ['id', 'thematicLine']
+              },
+              {
+                model: db.users,
+                as: 'reviewers',
+                attributes: ['id', 'email'],
+                through: { attributes: [] }
+              }
+            ]
+          }
+        ]
       });
-
       if (!userWithProposals) {
         return res.status(404).json({ error: "Usuario no encontrado." });
       }
-
-      const proposalsData = userWithProposals.proposals || [];
-      
+      const proposalsData = userWithProposals.authors || [];
       const result = proposalsData.map(proposal => {
-        const otherAuthors = proposal.users // 'users' is the default alias from Proposals.belongsToMany(Users)
-          //.filter(author => author.id !== parseInt(userId)) // Exclude the requesting user
-          .map(author => {
-            let fullname = "Nombre no disponible";
-            if (author.sigeco && author.sigeco.name && author.sigeco.lastname) {
-              fullname = `${author.sigeco.name} ${author.sigeco.lastname}`;
-            }
-            return {
-              id: author.id,
-              fullname: fullname
-            };
-          });
-        
+        const otherAuthors = (proposal.authors || []).map(author => {
+          let fullname = "Nombre no disponible";
+          if (author.sigeco && author.sigeco.name && author.sigeco.lastname) {
+            fullname = `${author.sigeco.name} ${author.sigeco.lastname}`;
+          }
+          return {
+            id: author.id,
+            fullname
+          };
+        });
         return {
           id: proposal.id,
           title: proposal.title,
           proposal: proposal.proposal,
-          thematicLine: proposal.thematicLine.thematicLine,
+          thematicLine: proposal.thematicLine ? proposal.thematicLine.thematicLine : null,
           state: proposal.state,
           editable: proposal.editable,
           createdAt: proposal.createdAt,
           updatedAt: proposal.updatedAt,
-          authors: otherAuthors
+          authors: otherAuthors,
+          reviewers: proposal.reviewers || []
         };
       });
-
       res.json(result);
-
     } catch (error) {
       console.error("Error al obtener las propuestas del usuario:", error);
       res.status(500).json({ error: "Error interno del servidor al obtener las propuestas." });
@@ -173,14 +185,9 @@ module.exports = (app) => {
       if (userIds) {
         const users = await db.users.findAll({ where: { id: userIds } });
         if (users.length !== userIds.length) {
-          // Consider if a partial update is acceptable or if this should be an atomic transaction
           return res.status(400).json({ error: "Uno o más IDs de usuario proporcionados no son válidos. La propuesta no fue actualizada con nuevos usuarios." });
         }
-        await proposalInstance.setUsers(users); // Replaces all existing associations
-
-        // Forzar la actualización de updatedAt para la propuesta principal
-        // ya que setUsers() modifica la tabla de unión pero no necesariamente la propuesta misma.
-        // Usamos instance.update() para asegurar la actualización del timestamp.
+        await proposalInstance.setAuthors(users); // ¡Usar el alias correcto!
         await proposalInstance.update({ updatedAt: new Date() });
       }
 
