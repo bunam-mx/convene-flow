@@ -192,16 +192,19 @@ module.exports = (app) => {
       }
 
       const updatedProposalWithAssociations = await db.proposals.findByPk(id, {
-        include: [{
-          model: db.users,
-          attributes: ['id', 'email'],
-          through: { attributes: [] }
-        },
-        {
-          model: db.thematicLines,
-          as: 'thematicLine',
-          attributes: ['id', 'thematicLine']
-        }]
+        include: [
+          {
+            model: db.users,
+            as: 'authors',
+            attributes: ['id', 'email'],
+            through: { attributes: [] }
+          },
+          {
+            model: db.thematicLines,
+            as: 'thematicLine',
+            attributes: ['id', 'thematicLine']
+          }
+        ]
       });
 
       res.json(updatedProposalWithAssociations);
