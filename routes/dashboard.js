@@ -251,8 +251,10 @@ module.exports = (app) => {
       }
 
       await proposal.setReviewers([reviewerId]);
+      // Cambiar estado y editable al asignar revisor
+      await proposal.update({ state: "Enviado", editable: 0 });
 
-      res.status(200).json({ message: "Reviewer assigned successfully." });
+      res.status(200).json({ message: "Reviewer assigned successfully y propuesta enviada." });
 
     } catch (err) {
       console.error("Error assigning reviewer:", err);
@@ -279,7 +281,10 @@ module.exports = (app) => {
       if (proposal.state === 'En proceso' && state === 'Enviado') {
         updateFields.editable = 0;
       }
-
+      // Si el cambio es a 'En proceso', editable = 1
+      if (state === 'En proceso') {
+        updateFields.editable = 1;
+      }
       await proposal.update(updateFields);
 
       res.status(200).json({ message: "Proposal state updated successfully." });
