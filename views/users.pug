@@ -15,6 +15,8 @@ block content
             th.px-3.py-2.whitespace-nowrap Correo electrónico
             th.px-3.py-2.whitespace-nowrap Nombre
             th.px-3.py-2.whitespace-nowrap Apellido
+            th.px-3.py-2.whitespace-nowrap Tipo de usuario
+            th.px-3.py-2.whitespace-nowrap Modo de asistencia
             th.px-3.py-2.whitespace-nowrap Entidad
             th.px-3.py-2.whitespace-nowrap Activo
         tbody.divide-y.divide-gray-200
@@ -23,6 +25,8 @@ block content
               td.px-3.py-2.whitespace-nowrap #[a(href="#" data-userId=user.id class="userDetails hover:text-gray-900 hover:underline") #{user.email}]
               td.px-3.py-2.whitespace-nowrap #{user.sigeco.name}
               td.px-3.py-2.whitespace-nowrap #{user.sigeco.lastname}
+              td.px-3.py-2.whitespace-nowrap #{user.userType.toUpperCase()}
+              td.px-3.py-2.whitespace-nowrap #{user.attendanceMode.toUpperCase()}
               td.px-3.py-2.whitespace-nowrap #{user.sigeco.entity}
               td.px-3.py-2.whitespace-nowrap
                 if user.active

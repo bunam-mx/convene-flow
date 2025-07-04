@@ -84,9 +84,13 @@ module.exports = (app) => {
 
   app.route("/cf/dashboard/users").get(async function (req, res) {
     try {
+      if(req.session.userType !== "admin") {
+        res.render("no-access");
+        return;
+      }
+      
       const usersData = await db.users.findAll({
-        attributes: ["id", "email", "active"],
-        where: { userType: "user" },
+        attributes: ["id", "email", "active", "userType", "attendanceMode"],
         include: [
           {
             model: db.sigecos,
@@ -184,6 +188,11 @@ module.exports = (app) => {
 
   app.get("/cf/dashboard/proposals", async (req, res) => {
     try {
+      if(req.session.userType !== "admin") {
+        res.render("no-access");
+        return;
+      }
+
       const proposalsData = await db.proposals.findAll({
         attributes: ["id", "title", "state", "editable"],
         include: [
@@ -210,7 +219,6 @@ module.exports = (app) => {
           },
         ],
       });
-      console.log("Proposals Data:", proposalsData);
       res.render("proposals", { proposalsData });
     } catch (err) {
       console.error("Error fetching proposals data:", err);
@@ -405,6 +413,11 @@ module.exports = (app) => {
 
   app.get("/cf/dashboard/reviewers-list", async (req, res) => {
     try {
+      if(req.session.userType !== "admin") {
+        res.render("no-access");
+        return;
+      }
+
       const reviewers = await db.users.findAll({
         where: { userType: "review" },
         attributes: ["id", "email"],

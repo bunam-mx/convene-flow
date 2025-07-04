@@ -45,3 +45,11 @@ table thead i {
 #abstract {
   border-top: 1px solid #dbdbdb;
 }
+#no-access a {
+  background-color: var(--aiesad-yellow);
+  color: var(--aiesad-white);
+}
+#no-access a:hover {
+  background-color: var(--aiesad-darkblue);
+  color: var(--aiesad-white);
+}
