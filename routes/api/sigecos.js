@@ -56,7 +56,7 @@ module.exports = (app) => {
           ]
         },
         attributes: [
-          'id',
+          ['userId', 'id'],
           [Sequelize.fn('CONCAT', Sequelize.col('name'), ' ', Sequelize.col('lastname')), 'fullname']
         ] // Modificado para devolver id y fullname
       });
