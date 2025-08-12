@@ -2,7 +2,8 @@ const express = require("express"),
   db = require("../sequelize"),
   crypto = require("crypto"),
   secret = process.env.CONVENE_SECRET,
-  app = express();
+  app = express(),
+  XLSX = require("xlsx");
 
 module.exports = (app) => {
   app
@@ -30,10 +31,10 @@ module.exports = (app) => {
 
         const user = await db.users.findOne({
           where: {
-        email,
-        password: hashedPassword,
-        userType: ["admin", "staff", "review"],
-        active: true,
+            email,
+            password: hashedPassword,
+            userType: ["admin", "staff", "review"],
+            active: true,
           },
         });
 
@@ -60,7 +61,10 @@ module.exports = (app) => {
       const registeredUsers = await db.users.count();
       const activeUsers = await db.users.count({ where: { active: true } });
       const proposalsByStateRaw = await db.proposals.findAll({
-        attributes: ["state", [db.Sequelize.fn("COUNT", db.Sequelize.col("state")), "count"]],
+        attributes: [
+          "state",
+          [db.Sequelize.fn("COUNT", db.Sequelize.col("state")), "count"],
+        ],
         group: ["state"],
       });
 
@@ -84,11 +88,11 @@ module.exports = (app) => {
 
   app.route("/cf/dashboard/users").get(async function (req, res) {
     try {
-      if(req.session.userType !== "admin") {
+      if (req.session.userType !== "admin") {
         res.render("no-access");
         return;
       }
-      
+
       const usersData = await db.users.findAll({
         attributes: ["id", "email", "active", "userType", "attendanceMode"],
         include: [
@@ -106,89 +110,93 @@ module.exports = (app) => {
     }
   });
 
-  app.route("/cf/dashboard/users/:id").post(async function (req, res) {
-    try {
-      const id = req.params.id;
+  app
+    .route("/cf/dashboard/users/:id")
+    .post(async function (req, res) {
+      try {
+        const id = req.params.id;
 
-      const {
-        email,
-        active,
-        userType,
-        attendanceMode,
-        name,
-        lastname,
-        entity,
-        curp,
-        studyLevel,
-      } = req.body;
+        const {
+          email,
+          active,
+          userType,
+          attendanceMode,
+          name,
+          lastname,
+          entity,
+          curp,
+          studyLevel,
+        } = req.body;
 
-      // Validar que ninguno de los campos esté vacío
-      const requiredFields = [
-        "email",
-        "userType",
-        "attendanceMode",
-        "name",
-        "lastname",
-        "entity",
-        "curp",
-        "studyLevel",
-      ];
+        // Validar que ninguno de los campos esté vacío
+        const requiredFields = [
+          "email",
+          "userType",
+          "attendanceMode",
+          "name",
+          "lastname",
+          "entity",
+          "curp",
+          "studyLevel",
+        ];
 
-      for (const field of requiredFields) {
-        if (!req.body[field]) {
-          console.error(`Missing field: ${field}`);
-          return res.status(400).json({ error: `Field '${field}' is required` });
+        for (const field of requiredFields) {
+          if (!req.body[field]) {
+            console.error(`Missing field: ${field}`);
+            return res
+              .status(400)
+              .json({ error: `Field '${field}' is required` });
+          }
         }
+
+        // Actualizar la tabla users
+        await db.users.update(
+          { email, active, userType, attendanceMode },
+          { where: { id } }
+        );
+
+        // Actualizar la tabla sigecos
+        await db.sigecos.update(
+          { name, lastname, entity, curp, studyLevel },
+          { where: { userId: id } }
+        );
+
+        res.status(200).json({ message: "User updated successfully" });
+      } catch (err) {
+        console.error("Error updating user data:", err);
+        res.status(500).json({ error: "Internal server error" });
       }
+    })
+    .get(async function (req, res) {
+      try {
+        const id = req.params.id;
 
-      // Actualizar la tabla users
-      await db.users.update(
-        { email, active, userType, attendanceMode },
-        { where: { id } }
-      );
+        const userData = await db.users.findOne({
+          attributes: ["id", "email", "active", "userType", "attendanceMode"],
+          where: { id },
+          include: [
+            {
+              model: db.sigecos,
+              attributes: ["name", "lastname", "entity", "curp", "studyLevel"],
+              required: true,
+            },
+          ],
+        });
 
-      // Actualizar la tabla sigecos
-      await db.sigecos.update(
-        { name, lastname, entity, curp, studyLevel },
-        { where: { userId: id } }
-      );
+        if (!userData) {
+          return res.status(404).json({ error: "User not found" });
+        }
 
-      res.status(200).json({ message: "User updated successfully" });
-    } catch (err) {
-      console.error("Error updating user data:", err);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  })
-  .get(async function (req, res) {
-    try {
-      const id = req.params.id;
-
-      const userData = await db.users.findOne({
-        attributes: ["id", "email", "active", "userType", "attendanceMode"],
-        where: { id },
-        include: [
-          {
-            model: db.sigecos,
-            attributes: ["name", "lastname", "entity", "curp", "studyLevel"],
-            required: true,
-          },
-        ],
-      });
-
-      if (!userData) {
-        return res.status(404).json({ error: "User not found" });
+        res.status(200).json(userData);
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+        res.status(500).json({ error: "Internal server error" });
       }
-
-      res.status(200).json(userData);
-    } catch (err) {
-      console.error("Error fetching user data:", err);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
+    });
 
   app.get("/cf/dashboard/proposals", async (req, res) => {
     try {
-      if(req.session.userType !== "admin") {
+      if (req.session.userType !== "admin") {
         res.render("no-access");
         return;
       }
@@ -205,11 +213,11 @@ module.exports = (app) => {
           {
             model: db.users,
             as: "authors",
-            attributes: ["id"],
+            attributes: ["id", "attendanceMode"],
             include: [
               {
                 model: db.sigecos,
-                attributes: ["name", "lastname"],
+                attributes: ["name", "lastname", "entity"],
                 required: true,
               },
             ],
@@ -231,11 +239,13 @@ module.exports = (app) => {
       const reviewers = await db.users.findAll({
         where: { userType: "review" },
         attributes: ["id"],
-        include: [{
-          model: db.sigecos,
-          attributes: ["name", "lastname"],
-          required: true
-        }]
+        include: [
+          {
+            model: db.sigecos,
+            attributes: ["name", "lastname"],
+            required: true,
+          },
+        ],
       });
       res.status(200).json(reviewers);
     } catch (err) {
@@ -262,8 +272,9 @@ module.exports = (app) => {
       // Cambiar estado y editable al asignar revisor
       await proposal.update({ state: "Enviado", editable: 0 });
 
-      res.status(200).json({ message: "Reviewer assigned successfully y propuesta enviada." });
-
+      res.status(200).json({
+        message: "Reviewer assigned successfully y propuesta enviada.",
+      });
     } catch (err) {
       console.error("Error assigning reviewer:", err);
       res.status(500).json({ error: "Internal server error" });
@@ -286,11 +297,11 @@ module.exports = (app) => {
 
       // Si el cambio es de 'En proceso' a 'Enviado', editable = 0
       let updateFields = { state };
-      if (proposal.state === 'En proceso' && state === 'Enviado') {
+      if (proposal.state === "En proceso" && state === "Enviado") {
         updateFields.editable = 0;
       }
       // Si el cambio es a 'En proceso', editable = 1
-      if (state === 'En proceso') {
+      if (state === "En proceso") {
         updateFields.editable = 1;
       }
       await proposal.update(updateFields);
@@ -308,12 +319,14 @@ module.exports = (app) => {
       const proposalData = await db.proposals.findOne({
         where: { id: proposalId },
         attributes: ["id", "proposal", "state"],
-        include: [{
-          model: db.users,
-          as: 'reviewers',
-          attributes: ['id'],
-          through: { attributes: [] }
-        }]
+        include: [
+          {
+            model: db.users,
+            as: "reviewers",
+            attributes: ["id"],
+            through: { attributes: [] },
+          },
+        ],
       });
 
       if (!proposalData) {
@@ -348,8 +361,8 @@ module.exports = (app) => {
             attributes: [],
             where: { id: reviewerId },
             through: { attributes: [] },
-            required: true
-          }
+            required: true,
+          },
         ],
       });
       res.render("my-reviews", { proposalsData });
@@ -365,12 +378,15 @@ module.exports = (app) => {
       const { state, comment } = req.body;
       const userId = req.session.userId;
       if (!userId) return res.status(401).json({ message: "No autorizado" });
-      if (!comment) return res.status(400).json({ message: "El comentario es obligatorio." });
+      if (!comment)
+        return res
+          .status(400)
+          .json({ message: "El comentario es obligatorio." });
       // Guardar comentario en proposalHistories
       await db.proposalHistories.create({
         comment,
         userId,
-        proposalId
+        proposalId,
       });
       // Actualizar estado de la propuesta
       if (state) {
@@ -389,20 +405,27 @@ module.exports = (app) => {
       const histories = await db.proposalHistories.findAll({
         where: { proposalId },
         order: [["createdAt", "DESC"]],
-        include: [{
-          model: db.users,
-          attributes: ["id"],
-          include: [{
-            model: db.sigecos,
-            as: 'sigeco',
-            attributes: ["name", "lastname"]
-          }]
-        }]
+        include: [
+          {
+            model: db.users,
+            attributes: ["id"],
+            include: [
+              {
+                model: db.sigecos,
+                as: "sigeco",
+                attributes: ["name", "lastname"],
+              },
+            ],
+          },
+        ],
       });
-      const result = histories.map(h => ({
+      const result = histories.map((h) => ({
         comment: h.comment,
         createdAt: h.createdAt,
-        userName: h.user && h.user.sigeco ? `${h.user.sigeco.name} ${h.user.sigeco.lastname}` : undefined
+        userName:
+          h.user && h.user.sigeco
+            ? `${h.user.sigeco.name} ${h.user.sigeco.lastname}`
+            : undefined,
       }));
       res.json(result);
     } catch (err) {
@@ -413,7 +436,7 @@ module.exports = (app) => {
 
   app.get("/cf/dashboard/reviewers-list", async (req, res) => {
     try {
-      if(req.session.userType !== "admin") {
+      if (req.session.userType !== "admin") {
         res.render("no-access");
         return;
       }
@@ -424,16 +447,16 @@ module.exports = (app) => {
         include: [
           {
             model: db.sigecos,
-            as: 'sigeco',
-            attributes: ["name", "lastname"]
+            as: "sigeco",
+            attributes: ["name", "lastname"],
           },
           {
             model: db.proposals,
             as: "reviewProposals",
             attributes: ["id", "title", "state"],
-            through: { attributes: [] }
-          }
-        ]
+            through: { attributes: [] },
+          },
+        ],
       });
       res.render("reviewers-list", { reviewers });
     } catch (err) {
@@ -442,15 +465,175 @@ module.exports = (app) => {
     }
   });
 
-  app.get('/cf/logout', (req, res) => {
-    req.session.destroy(err => {
+  app.get("/cf/logout", (req, res) => {
+    req.session.destroy((err) => {
       if (err) {
-        console.error('Error al cerrar sesión:', err);
-        return res.status(500).send('Error al cerrar sesión');
+        console.error("Error al cerrar sesión:", err);
+        return res.status(500).send("Error al cerrar sesión");
       }
-      res.redirect('/cf/');
+      res.redirect("/cf/");
     });
   });
 
-  
+  app.get("/cf/dashboard/csv/users", async function (req, res) {
+    try {
+      if (req.session.userType !== "admin") {
+        res.status(403).send("No access");
+        return;
+      }
+      const usersData = await db.users.findAll({
+        attributes: ["id", "email", "active", "userType", "attendanceMode"],
+        include: [
+          {
+            model: db.sigecos,
+            attributes: ["name", "lastname", "entity"],
+            required: true, // Igual que la vista
+          },
+        ],
+      });
+      // Construir CSV
+      let csv = "ID,Email,Activo,Tipo,Modalidad,Nombre,Apellido,Entidad\n";
+      usersData.forEach((user) => {
+        const sigeco = user.sigeco || {};
+        csv += `${user.id},${user.email},${user.active ? "Sí" : "No"},${
+          user.userType
+        },${user.attendanceMode},${sigeco.name || ""},${
+          sigeco.lastname || ""
+        },${sigeco.entity || ""}\n`;
+      });
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="usuarios.csv"'
+      );
+      res.send(csv);
+    } catch (err) {
+      console.error("Error generating CSV:", err);
+      res.status(500).send("Error interno del servidor");
+    }
+  });
+
+  app.get("/cf/dashboard/xlsx/users", async function (req, res) {
+    try {
+      if (req.session.userType !== "admin") {
+        res.status(403).send("No access");
+        return;
+      }
+      const usersData = await db.users.findAll({
+        attributes: ["id", "email", "active", "userType", "attendanceMode"],
+        include: [
+          {
+            model: db.sigecos,
+            attributes: ["name", "lastname", "entity"],
+            required: true,
+          },
+        ],
+      });
+      const rows = usersData.map((user) => {
+        const sigeco = user.sigeco || {};
+        return {
+          ID: user.id,
+          Email: user.email,
+          Activo: user.active ? "Sí" : "No",
+          Tipo: user.userType,
+          Modalidad: user.attendanceMode,
+          Nombre: sigeco.name || "",
+          Apellido: sigeco.lastname || "",
+          Entidad: sigeco.entity || "",
+        };
+      });
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Usuarios");
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="asistentes.xlsx"'
+      );
+      res.send(buffer);
+    } catch (err) {
+      console.error("Error generating XLSX:", err);
+      res.status(500).send("Error interno del servidor");
+    }
+  });
+
+  app.get("/cf/dashboard/xlsx/proposals", async function (req, res) {
+    try {
+      if (req.session.userType !== "admin") {
+        res.status(403).send("No access");
+        return;
+      }
+      const proposalsData = await db.proposals.findAll({
+        attributes: ["id", "title", "state", "editable"],
+        include: [
+          {
+            model: db.thematicLines,
+            as: "thematicLine",
+            attributes: ["thematicLine"],
+            required: true,
+          },
+          {
+            model: db.users,
+            as: "authors",
+            attributes: ["id", "attendanceMode"],
+            include: [
+              {
+                model: db.sigecos,
+                attributes: ["name", "lastname", "entity"],
+                required: true,
+              },
+            ],
+            through: {
+              attributes: [],
+            },
+          },
+        ],
+      });
+      const rows = proposalsData.map((proposal) => {
+        const authors = (proposal.authors || [])
+          .map((a) => (a.sigeco ? `${a.sigeco.name} ${a.sigeco.lastname}` : ""))
+          .join("; ");
+        const attendanceModes = (proposal.authors || [])
+          .map((a) => a.attendanceMode || "")
+          .filter((mode) => mode)
+          .join("; ");
+        const entities = (proposal.authors || [])
+          .map((a) => (a.sigeco ? a.sigeco.entity || "" : ""))
+          .filter((entity) => entity)
+          .join("; ");
+        return {
+          ID: proposal.id,
+          Titulo: proposal.title,
+          Estado: proposal.state,
+          Editable: proposal.editable ? "Sí" : "No",
+          "Línea temática": proposal.thematicLine
+            ? proposal.thematicLine.thematicLine
+            : "",
+          Autores: authors,
+          Entidad: entities,
+          "Modalidad de asistencia": attendanceModes,
+        };
+      });
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Propuestas");
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="propuestas.xlsx"'
+      );
+      res.send(buffer);
+    } catch (err) {
+      console.error("Error generating XLSX propuestas:", err);
+      res.status(500).send("Error interno del servidor");
+    }
+  });
 };

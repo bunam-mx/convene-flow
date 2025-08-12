@@ -27,12 +27,14 @@ block content
               td.px-3.py-2.whitespace-nowrap #{user.sigeco.lastname}
               td.px-3.py-2.whitespace-nowrap #{user.userType.toUpperCase()}
               td.px-3.py-2.whitespace-nowrap #{user.attendanceMode.toUpperCase()}
-              td.px-3.py-2.whitespace-nowrap #{user.sigeco.entity}
+              td.px-3.py-2.max-w-60= user.sigeco.entity
               td.px-3.py-2.whitespace-nowrap
                 if user.active
                   i.fas.fa-check-circle(data-active="A")
                 else
                   i.fas.fa-minus-circle.text-red-700(data-active="B")
+    div.border.border-gray-100.bg-gray-50.p-4.rounded.mt-16
+      a.btn.bg-blue-600.text-white.px-4.py-2.rounded(href="/cf/dashboard/xlsx/users") Descargar asistentes
     div.border.border-gray-100.bg-gray-50.p-4.rounded.mt-16
       h3.text-2xl.font-bold.my-6 Detalles del asistente
       #userActions(style="display: none;")

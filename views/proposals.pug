@@ -24,6 +24,12 @@ block content
             th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="users")
               | Participantes
               span.sort-icon
+            th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="entity")
+              | Entidad
+              span.sort-icon
+            th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="attendanceMode")
+              | Modalidad
+              span.sort-icon
             th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="editable")
               | Editable 
               span.sort-icon
@@ -33,14 +39,22 @@ block content
               td.px-3.py-2.max-w-80 #[a(href="#" data-proposalId=proposal.id class="proposalDetails hover:text-gray-900 hover:underline")= proposal.title]
               td.px-3.py-2.whitespace-nowrap= proposal.state
               td.px-3.py-2.max-w-60= proposal.thematicLine.thematicLine
-              td.px-3.py-2.whitespace-nowrap
+              td.px-3.py-2.whitespace-normal.w-80
                 each user in proposal.authors
                   span.block= `${user.sigeco.name} ${user.sigeco.lastname}`
+              td.px-3.py-2.whitespace-normal.w-20
+                each user in proposal.authors
+                  span.block= user.sigeco.entity
+              td.px-3.py-2.whitespace-nowrap
+                each user in proposal.authors
+                  span.block= user.attendanceMode
               td.px-3.py-2.whitespace-nowrap
                 if proposal.editable
                   i.fas.fa-check-circle(data-editable="true")
                 else
                   i.fas.fa-minus-circle.text-red-700(data-editable="false")
+    div.border.border-gray-100.bg-gray-50.p-4.rounded.mt-16
+      a.btn.bg-blue-600.text-white.px-4.py-2.rounded(href="/cf/dashboard/xlsx/proposals") Descargar propuestas
     div.border.border-gray-100.bg-gray-50.p-4.rounded.mt-16
         h3.text-2xl.font-bold.my-6 Detalles de la propuesta
         #proposalActions(style="display: none;")
