@@ -58,7 +58,8 @@ block content
     div.border.border-gray-100.bg-gray-50.p-4.rounded.mt-16
         h3.text-2xl.font-bold.my-6 Detalles de la propuesta
         #proposalActions(style="display: none;")
-          .grid.grid-cols-2.gap-8
+          h2#proposalTitle.text-3xl.font-bold
+          .grid.grid-cols-2.gap-8.mt-10
             div
               #reviewerDetails
                 h4.text-xl.font-bold.mb-4 Revisor
@@ -150,6 +151,7 @@ block content
         });
       });
 
+      const proposalTitle = document.querySelector('#proposalTitle');
       const proposalDetailsLinks = document.querySelectorAll('.proposalDetails');
       const proposalActionsDiv = document.querySelector('#proposalActions');
       const abstractDiv = document.querySelector('#abstract');
@@ -184,6 +186,9 @@ block content
 
             const proposalData = await proposalResponse.json();
             const reviewers = await reviewersResponse.json();
+
+            // Populate title
+            proposalTitle.textContent = proposalData.title;
 
             // Populate abstract
             abstractDiv.innerHTML = proposalData.proposal;

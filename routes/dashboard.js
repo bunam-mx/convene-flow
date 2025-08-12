@@ -318,7 +318,7 @@ module.exports = (app) => {
       const proposalId = req.params.id;
       const proposalData = await db.proposals.findOne({
         where: { id: proposalId },
-        attributes: ["id", "proposal", "state"],
+        attributes: ["id", "title", "proposal", "state"],
         include: [
           {
             model: db.users,
