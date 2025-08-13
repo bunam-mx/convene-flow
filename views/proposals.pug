@@ -33,6 +33,12 @@ block content
             th.px-3.py-2.whitespace-nowrap.cursor-pointer(data-sort="editable")
               | Editable 
               span.sort-icon
+            th.px-3.py-2.whitespace-nowrap.cursor-pointer
+              | Fecha de creación
+              span.sort-icon
+            th.px-3.py-2.whitespace-nowrap.cursor-pointer
+              | Fecha de actualización
+              span.sort-icon
         tbody.divide-y.divide-gray-200
           each proposal in proposalsData
             tr.proposal-row(data-proposal-id=proposal.id)
@@ -53,12 +59,19 @@ block content
                   i.fas.fa-check-circle(data-editable="true")
                 else
                   i.fas.fa-minus-circle.text-red-700(data-editable="false")
+              td.px-3.py-2.whitespace-nowrap
+                - const createdDate = new Date(proposal.createdAt)
+                | #{createdDate.toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' })} #{createdDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })}
+              td.px-3.py-2.whitespace-nowrap
+                - const updatedDate = new Date(proposal.updatedAt)
+                | #{updatedDate.toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' })} #{updatedDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })}
     div.border.border-gray-100.bg-gray-50.p-4.rounded.mt-16
       a.btn.bg-blue-600.text-white.px-4.py-2.rounded(href="/cf/dashboard/xlsx/proposals") Descargar propuestas
     div.border.border-gray-100.bg-gray-50.p-4.rounded.mt-16
         h3.text-2xl.font-bold.my-6 Detalles de la propuesta
         #proposalActions(style="display: none;")
           h2#proposalTitle.text-3xl.font-bold
+          p.mt-10 Registro #[span#createdAt.inline-block.mr-10.ml-2.font-bold] Actualización #[span#updatedAt.inline-block.ml-2.font-bold]
           .grid.grid-cols-2.gap-8.mt-10
             div
               #reviewerDetails
@@ -159,6 +172,8 @@ block content
       const reviewerSelect = document.querySelector('#reviewerSelect');
       const proposalIdInput = document.querySelector('#proposalIdInput');
       const reviewerFeedback = document.querySelector('#reviewerFeedback');
+      const proposalCreatedAt = document.querySelector('#createdAt');
+      const proposalUpdatedAt = document.querySelector('#updatedAt');
 
       const updateStateForm = document.querySelector('#updateStateForm');
       const stateSelect = document.querySelector('#stateSelect');
@@ -195,6 +210,10 @@ block content
 
             // Populate state
             stateSelect.value = proposalData.state;
+
+            proposalCreatedAt.textContent = new Date(proposalData.createdAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' }) + ' ' + new Date(proposalData.createdAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+            proposalUpdatedAt.textContent = new Date(proposalData.updatedAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' }) + ' ' + new Date(proposalData.updatedAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
 
             // Populate reviewers dropdown
             reviewerSelect.innerHTML = '<option value="">Select a reviewer</option>';

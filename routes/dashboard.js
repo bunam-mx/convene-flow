@@ -202,7 +202,7 @@ module.exports = (app) => {
       }
 
       const proposalsData = await db.proposals.findAll({
-        attributes: ["id", "title", "state", "editable"],
+        attributes: ["id", "title", "state", "editable", "createdAt", "updatedAt"],
         include: [
           {
             model: db.thematicLines,
@@ -301,7 +301,7 @@ module.exports = (app) => {
         updateFields.editable = 0;
       }
       // Si el cambio es a 'En proceso', editable = 1
-      if (state === "En proceso") {
+      if (state === "En proceso" || state === "Aceptado con recomendaciones") {
         updateFields.editable = 1;
       }
       await proposal.update(updateFields);
@@ -318,7 +318,7 @@ module.exports = (app) => {
       const proposalId = req.params.id;
       const proposalData = await db.proposals.findOne({
         where: { id: proposalId },
-        attributes: ["id", "title", "proposal", "state"],
+        attributes: ["id", "title", "proposal", "state", "createdAt", "updatedAt"],
         include: [
           {
             model: db.users,
@@ -453,7 +453,22 @@ module.exports = (app) => {
           {
             model: db.proposals,
             as: "reviewProposals",
-            attributes: ["id", "title", "state"],
+            attributes: ["id", "title", "state", "score"],
+            include: [
+              {
+                model: db.users,
+                as: "authors",
+                attributes: ["attendanceMode"],
+                include: [
+                  {
+                    model: db.sigecos,
+                    attributes: ["name", "lastname", "entity"],
+                    required: true,
+                  },
+                ],
+                through: { attributes: [] },
+              },
+            ],
             through: { attributes: [] },
           },
         ],
@@ -568,7 +583,7 @@ module.exports = (app) => {
         return;
       }
       const proposalsData = await db.proposals.findAll({
-        attributes: ["id", "title", "state", "editable"],
+        attributes: ["id", "title", "state", "editable", "createdAt", "updatedAt"],
         include: [
           {
             model: db.thematicLines,
@@ -605,6 +620,10 @@ module.exports = (app) => {
           .map((a) => (a.sigeco ? a.sigeco.entity || "" : ""))
           .filter((entity) => entity)
           .join("; ");
+        
+        const createdDate = new Date(proposal.createdAt);
+        const updatedDate = new Date(proposal.updatedAt);
+        
         return {
           ID: proposal.id,
           Titulo: proposal.title,
@@ -616,6 +635,8 @@ module.exports = (app) => {
           Autores: authors,
           Entidad: entities,
           "Modalidad de asistencia": attendanceModes,
+          "Fecha de creación": `${createdDate.toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' })} ${createdDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })}`,
+          "Fecha de actualización": `${updatedDate.toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' })} ${updatedDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })}`,
         };
       });
       const worksheet = XLSX.utils.json_to_sheet(rows);
@@ -633,6 +654,110 @@ module.exports = (app) => {
       res.send(buffer);
     } catch (err) {
       console.error("Error generating XLSX propuestas:", err);
+      res.status(500).send("Error interno del servidor");
+    }
+  });
+
+  app.get("/cf/dashboard/xlsx/reviewers", async function (req, res) {
+    try {
+      if (req.session.userType !== "admin") {
+        res.status(403).send("No access");
+        return;
+      }
+      
+      const reviewers = await db.users.findAll({
+        where: { userType: "review" },
+        attributes: ["id", "email"],
+        include: [
+          {
+            model: db.sigecos,
+            as: "sigeco",
+            attributes: ["name", "lastname"],
+          },
+          {
+            model: db.proposals,
+            as: "reviewProposals",
+            attributes: ["id", "title", "state", "score"],
+            include: [
+              {
+                model: db.users,
+                as: "authors",
+                attributes: ["attendanceMode"],
+                include: [
+                  {
+                    model: db.sigecos,
+                    attributes: ["name", "lastname", "entity"],
+                    required: true,
+                  },
+                ],
+                through: { attributes: [] },
+              },
+            ],
+            through: { attributes: [] },
+          },
+        ],
+      });
+
+      const rows = [];
+      reviewers.forEach((reviewer) => {
+        if (reviewer.reviewProposals && reviewer.reviewProposals.length > 0) {
+          reviewer.reviewProposals.forEach((proposal) => {
+            const authors = (proposal.authors || [])
+              .map((a) => (a.sigeco ? `${a.sigeco.name} ${a.sigeco.lastname}` : ""))
+              .join("; ");
+            const entities = (proposal.authors || [])
+              .map((a) => (a.sigeco ? a.sigeco.entity || "" : ""))
+              .filter((entity) => entity)
+              .join("; ");
+            const attendanceModes = (proposal.authors || [])
+              .map((a) => a.attendanceMode || "")
+              .filter((mode) => mode)
+              .join("; ");
+
+            rows.push({
+              Revisor: reviewer.sigeco 
+                ? `${reviewer.sigeco.name} ${reviewer.sigeco.lastname}` 
+                : "-",
+              "Correo electrónico": reviewer.email,
+              Propuesta: proposal.title,
+              Estado: proposal.state,
+              Puntuación: proposal.score || "-",
+              Autores: authors || "No authors",
+              Entidad: entities || "-",
+              Modalidad: attendanceModes || "-",
+            });
+          });
+        } else {
+          rows.push({
+            Revisor: reviewer.sigeco 
+              ? `${reviewer.sigeco.name} ${reviewer.sigeco.lastname}` 
+              : "-",
+            "Correo electrónico": reviewer.email,
+            Propuesta: "No proposals assigned",
+            Estado: "-",
+            Puntuación: "-",
+            Autores: "-",
+            Entidad: "-",
+            Modalidad: "-",
+          });
+        }
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Revisores");
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="revisores.xlsx"'
+      );
+      res.send(buffer);
+    } catch (err) {
+      console.error("Error generating XLSX reviewers:", err);
       res.status(500).send("Error interno del servidor");
     }
   });

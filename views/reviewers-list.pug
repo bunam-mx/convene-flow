@@ -14,19 +14,50 @@ block content
           tr(class="*\:font-medium *\:text-gray-900")
             th.px-3.py-2.whitespace-nowrap Revisor
             th.px-3.py-2.whitespace-nowrap Correo electrónico
-            th.px-3.py-2.whitespace-nowrap Propuestas asignadas
+            th.px-3.py-2.whitespace-nowrap Propuesta
+            th.px-3.py-2.whitespace-nowrap Estado
+            th.px-3.py-2.whitespace-nowrap Puntuación
+            th.px-3.py-2.whitespace-nowrap Autores
+            th.px-3.py-2.whitespace-nowrap Entidad
+            th.px-3.py-2.whitespace-nowrap Modalidad
         tbody.divide-y.divide-gray-200
           each reviewer in reviewers
-            tr
-              td.px-3.py-2
-                | #{reviewer.sigeco ? reviewer.sigeco.name + ' ' + reviewer.sigeco.lastname : '-'}
-              td.px-3.py-2= reviewer.email
-              td.px-3.py-2
-                if reviewer.reviewProposals && reviewer.reviewProposals.length
-                  ul.list-disc.list-inside.mb-2
-                    each proposal in reviewer.reviewProposals
-                      li
-                        span.font-semibold= proposal.title
-                        |  (#{proposal.state})
-                else
-                  span.text-gray-400 No proposals assigned
+            if reviewer.reviewProposals && reviewer.reviewProposals.length
+              each proposal, index in reviewer.reviewProposals
+                tr
+                  td.px-3.py-2
+                    | #{reviewer.sigeco ? reviewer.sigeco.name + ' ' + reviewer.sigeco.lastname : '-'}
+                  td.px-3.py-2
+                    | #{reviewer.email}
+                  td.px-3.py-2.max-w-80
+                    span.font-semibold= proposal.title
+                  td.px-3.py-2
+                    span(class=proposal.state === 'Aceptado' ? 'text-green-600' : proposal.state === 'Rechazado' ? 'text-red-600' : 'text-yellow-600')= proposal.state
+                  td.px-3.py-2.text-center
+                    | #{proposal.score || '-'}
+                  td.px-3.py-2
+                    if proposal.authors && proposal.authors.length
+                      each author in proposal.authors
+                        span.block.text-sm= author.sigeco ? author.sigeco.name + ' ' + author.sigeco.lastname : '-'
+                    else
+                      span.text-gray-400.text-sm No authors
+                  td.px-3.py-2
+                    if proposal.authors && proposal.authors.length
+                      each author in proposal.authors
+                        span.block.text-sm= author.sigeco ? author.sigeco.entity || '-' : '-'
+                    else
+                      span.text-gray-400.text-sm -
+                  td.px-3.py-2
+                    if proposal.authors && proposal.authors.length
+                      each author in proposal.authors
+                        span.block.text-sm= author.attendanceMode || '-'
+                    else
+                      span.text-gray-400.text-sm -
+            else
+              tr
+                td.px-3.py-2
+                  | #{reviewer.sigeco ? reviewer.sigeco.name + ' ' + reviewer.sigeco.lastname : '-'}
+                td.px-3.py-2= reviewer.email
+                td.px-3.py-2.text-gray-400(colspan="6") No proposals assigned
+    div.border.border-gray-100.bg-gray-50.p-4.rounded.mt-16
+      a.btn.bg-blue-600.text-white.px-4.py-2.rounded(href="/cf/dashboard/xlsx/reviewers") Descargar revisores

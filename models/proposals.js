@@ -19,6 +19,10 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 'Enviado',
     },
+    score: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     editable: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
