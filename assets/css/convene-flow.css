@@ -38,6 +38,10 @@ table thead i {
   margin-left: 1rem;
 }
 
+#proposalTitle {
+  color: var(--aiesad-yellow)
+}
+
 #proposalActions H4 {
   color: var(--aiesad-blue);
 }
