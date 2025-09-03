@@ -768,4 +768,98 @@ module.exports = (app) => {
       res.status(500).send("Error interno del servidor");
     }
   });
+
+  app.get("/cf/dashboard/xlsx/comments", async function (req, res) {
+    try {
+      if (req.session.userType !== "admin") {
+        return res.status(403).send("Acceso denegado");
+      }
+
+      const reviewers = await db.users.findAll({
+        where: { userType: "review" },
+        attributes: ["id", "email"],
+        include: [
+          {
+            model: db.sigecos,
+            as: "sigeco",
+            attributes: ["name", "lastname"],
+          },
+          {
+            model: db.proposals,
+            as: "reviewProposals",
+            attributes: ["id", "title", "state", "score"],
+            include: [
+              {
+                model: db.users,
+                as: "authors",
+                attributes: ["attendanceMode"],
+                include: [
+                  {
+                    model: db.sigecos,
+                    attributes: ["name", "lastname", "entity"],
+                    required: true,
+                  },
+                ],
+                through: { attributes: [] },
+              },
+              {
+                model: db.proposalHistories,
+                as: "proposalHistories",
+                attributes: ["comment"],
+                required: false,
+              },
+            ],
+            through: { attributes: [] },
+          },
+        ],
+      });
+
+      const rows = [];
+      reviewers.forEach((reviewer) => {
+        if (reviewer.reviewProposals && reviewer.reviewProposals.length) {
+          reviewer.reviewProposals.forEach((proposal) => {
+            const comments = proposal.proposalHistories
+              ? proposal.proposalHistories.map((c) => c.comment).join("\n\n")
+              : "-";
+
+            rows.push({
+              Revisor: `${reviewer.sigeco.name} ${reviewer.sigeco.lastname}`,
+              "Correo electrónico": reviewer.email,
+              Propuesta: proposal.title,
+              Estado: proposal.state,
+              Puntuación: proposal.score || "-",
+              Autores: proposal.authors
+                .map((author) => `${author.sigeco.name} ${author.sigeco.lastname}`)
+                .join(", "),
+              Entidad: proposal.authors
+                .map((author) => author.sigeco.entity || "-")
+                .join(", "),
+              Modalidad: proposal.authors
+                .map((author) => author.attendanceMode || "-")
+                .join(", "),
+              Comentarios: comments,
+            });
+          });
+        }
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Comentarios");
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="comentarios.xlsx"'
+      );
+      res.send(buffer);
+    } catch (err) {
+      console.error("Error generating XLSX with comments:", err);
+      res.status(500).send("Error interno del servidor");
+    }
+  });
 };
