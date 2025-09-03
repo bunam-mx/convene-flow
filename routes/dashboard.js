@@ -284,7 +284,7 @@ module.exports = (app) => {
   app.post("/cf/dashboard/proposals/:id/update-state", async (req, res) => {
     try {
       const proposalId = req.params.id;
-      const { state } = req.body;
+      const { state, score } = req.body;
 
       if (!state) {
         return res.status(400).json({ message: "State is required." });
@@ -297,6 +297,9 @@ module.exports = (app) => {
 
       // Si el cambio es de 'En proceso' a 'Enviado', editable = 0
       let updateFields = { state };
+      if (score !== undefined && score !== null && score !== '') {
+        updateFields.score = score;
+      }
       if (proposal.state === "En proceso" && state === "Enviado") {
         updateFields.editable = 0;
       }
@@ -318,7 +321,7 @@ module.exports = (app) => {
       const proposalId = req.params.id;
       const proposalData = await db.proposals.findOne({
         where: { id: proposalId },
-        attributes: ["id", "title", "proposal", "state", "createdAt", "updatedAt"],
+        attributes: ["id", "title", "proposal", "state", "score", "createdAt", "updatedAt"],
         include: [
           {
             model: db.users,
@@ -347,7 +350,7 @@ module.exports = (app) => {
         return res.status(401).send("Unauthorized");
       }
       const proposalsData = await db.proposals.findAll({
-        attributes: ["id", "title", "state", "editable"],
+        attributes: ["id", "title", "state", "editable", "score"],
         include: [
           {
             model: db.thematicLines,
@@ -375,7 +378,7 @@ module.exports = (app) => {
   app.post("/cf/dashboard/proposals/:id/review-comment", async (req, res) => {
     try {
       const proposalId = req.params.id;
-      const { state, comment } = req.body;
+      const { state, comment, score } = req.body;
       const userId = req.session.userId;
       if (!userId) return res.status(401).json({ message: "No autorizado" });
       if (!comment)
@@ -390,7 +393,11 @@ module.exports = (app) => {
       });
       // Actualizar estado de la propuesta
       if (state) {
-        await db.proposals.update({ state }, { where: { id: proposalId } });
+        let updateFields = { state };
+        if (score !== undefined && score !== null && score !== '') {
+          updateFields.score = score;
+        }
+        await db.proposals.update(updateFields, { where: { id: proposalId } });
       }
       res.status(200).json({ message: "Comentario guardado correctamente." });
     } catch (err) {
