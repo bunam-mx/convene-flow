@@ -86,7 +86,7 @@ module.exports = (app) => {
               {
                 model: db.users,
                 as: 'authors',
-                attributes: ['id'],
+                attributes: ['id','attendanceMode'],
                 through: { attributes: [] },
                 include: [
                   {
@@ -122,7 +122,8 @@ module.exports = (app) => {
           }
           return {
             id: author.id,
-            fullname
+            fullname,
+            attendanceMode: author.attendanceMode
           };
         });
         return {
@@ -218,6 +219,21 @@ module.exports = (app) => {
     }
   });
 
-  
+  app.route("/api/histories/:proposalId").get(async function (req, res) {
+    const { proposalId } = req.params;
+    if (!proposalId) {
+      return res.status(400).json({ error: "El parámetro 'proposalId' es requerido." });
+    }
+    try {
+      const histories = await db.proposalHistories.findAll({
+        where: { proposalId },
+        order: [['createdAt', 'DESC']]
+      });
+      res.json(histories);
+    } catch (error) {
+      console.error("Error al obtener los historiales de la propuesta:", error);
+      res.status(500).json({ error: "Error interno del servidor al obtener los historiales." });
+    }
+  });  
     
 }
