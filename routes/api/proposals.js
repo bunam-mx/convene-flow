@@ -146,6 +146,43 @@ module.exports = (app) => {
     }
   });
 
+  app.route("/api/proposals/detail/:id").get(async function (req, res) {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ error: "El parámetro 'id' de la propuesta es requerido." });
+    }
+    try {
+      const proposal = await db.proposals.findByPk(id, {
+        include: [
+          {
+            model: db.users,
+            as: 'authors',
+            attributes: ['id', 'email'],
+            through: { attributes: [] },
+            include: [
+              {
+                model: db.sigecos,
+                attributes: ['name', 'lastname']
+              }
+            ]
+          },
+          {
+            model: db.thematicLines,
+            as: 'thematicLine',
+            attributes: ['id', 'thematicLine']
+          }
+        ]
+      });
+      if (!proposal) {
+        return res.status(404).json({ error: "Propuesta no encontrada." });
+      }
+      res.json(proposal);
+    } catch (error) {
+      console.error("Error al obtener los detalles de la propuesta:", error);
+      res.status(500).json({ error: "Error interno del servidor al obtener los detalles de la propuesta." });
+    }
+  });
+
   app.route("/api/proposals/:id").put(async function (req, res) {
     const { id } = req.params;
     const { title, proposal, userIds, thematicLineId } = req.body;
