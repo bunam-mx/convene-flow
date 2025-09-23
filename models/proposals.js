@@ -14,6 +14,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.TEXT, // Adecuado para ~500 palabras
       allowNull: false,
     },
+    originalProposal: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
     state: {
       type: DataTypes.ENUM('Enviado', 'En proceso', 'Aceptado', 'Aceptado con recomendaciones', 'Rechazado'),
       allowNull: false,

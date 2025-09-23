@@ -210,6 +210,7 @@ module.exports = (app) => {
         proposalInstance.title = title;
       }
       if (proposal) {
+        proposalInstance.originalProposal = proposalInstance.proposal;
         proposalInstance.proposal = proposal;
       }
       if (thematicLineId) {
