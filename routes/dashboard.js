@@ -792,7 +792,7 @@ module.exports = (app) => {
               {
                 model: db.users,
                 as: "authors",
-                attributes: ["attendanceMode"],
+                attributes: ["email", "attendanceMode"],
                 include: [
                   {
                     model: db.sigecos,
@@ -830,6 +830,9 @@ module.exports = (app) => {
               Puntuación: proposal.score || "-",
               Autores: proposal.authors
                 .map((author) => `${author.sigeco.name} ${author.sigeco.lastname}`)
+                .join(", "),
+              "Correo electrónico de autores": proposal.authors
+                .map((author) => author.email || "-")
                 .join(", "),
               Entidad: proposal.authors
                 .map((author) => author.sigeco.entity || "-")
