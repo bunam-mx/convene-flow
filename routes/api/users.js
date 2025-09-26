@@ -104,7 +104,7 @@ const sendConfirmationChangePassword = async (email) => {
     to: email,
     subject: "🔑 Ha realizado un cambio de su contraseña",
     text: `Hemos procesado su cambio de contraseña. Ahora puede ingresar a la plataforma con su nueva contraseña.`,
-    html: `<div style="font-size: 24px"><p>Hemos procesado su cambio de contraseña.</p><p>Ahora puede ingresar a la plataforma con su nueva contraseña.</p><p>De clic en el siguiente <a href="${process.env.URL_DESTINY}" target="_blank">enlace</a> para ir a la plataforma.</p><p>Este correo fue enviado automáticamente, por favor no lo responda.</p><p>Para dudas comuníquese al correo <a href="mailto:encuentroaiesad2025@cuaed.unam.mx">encuentroaiesad2025@cuaed.unam.mx</a></p></div>`,
+    html: `<div style="font-size: 24px"><p>Hemos procesado su cambio de contraseña.</p><p>Ahora puede ingresar a la plataforma con su nueva contraseña.</p><p>De clic en el siguiente <a href="${process.env.URL_DESTINY}/user/signin" target="_blank">enlace</a> para ir a la plataforma.</p><p>Este correo fue enviado automáticamente, por favor no lo responda.</p><p>Para dudas comuníquese al correo <a href="mailto:encuentroaiesad2025@cuaed.unam.mx">encuentroaiesad2025@cuaed.unam.mx</a></p></div>`,
   };
 
   try {
