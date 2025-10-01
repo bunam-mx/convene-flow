@@ -1,6 +1,4 @@
-const { DataTypes } = require('sequelize');
-
-module.exports = (sequelize) => {
+module.exports = (sequelize, DataTypes) => {
   const ThematicLines = sequelize.define('thematicLines', {
     id: {
       type: DataTypes.INTEGER,
@@ -10,13 +8,11 @@ module.exports = (sequelize) => {
     thematicLine: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true, // Assuming thematic lines should be unique
     },
     // Timestamps are managed by Sequelize by default (createdAt, updatedAt)
   }, {
     // Model options
     timestamps: true,
-    // tableName: 'thematic_lines' // Optional: if you want a different table name
   });
 
   ThematicLines.associate = (models) => {
