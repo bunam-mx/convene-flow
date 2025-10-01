@@ -78,6 +78,25 @@ module.exports = (sequelize, type) => {
     // Relación uno a uno con Sigecos
     Users.hasOne(models.sigecos, { foreignKey: 'userId' }); 
 
+    // Relación uno a uno con Speakers
+    Users.hasOne(models.speakers, {
+      foreignKey: 'userId',
+      as: 'speakerProfile',
+    });
+
+    // Relación muchos a muchos con Workshops (como asistente)
+    Users.belongsToMany(models.workshops, {
+      through: 'workshopAttendees',
+      as: 'registeredWorkshops',
+      foreignKey: 'userId',
+      otherKey: 'workshopId',
+    });
+
+    Users.hasMany(models.workshopAttendees, {
+      foreignKey: 'userId',
+      as: 'workshopRegistrations',
+    });
+
     // Relación muchos a muchos con Proposals (como autor)
     Users.belongsToMany(models.proposals, {
       through: 'userProposals', // Mismo nombre de tabla de unión

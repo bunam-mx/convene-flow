@@ -23,6 +23,9 @@ db.proposals = require("./models/proposals")(sequelize, Sequelize);
 db.sigecos = require("./models/sigecos")(sequelize, Sequelize);
 db.thematicLines = require("./models/thematicLines")(sequelize, Sequelize);
 db.proposalHistories = require("./models/proposalHistories")(sequelize, Sequelize);
+db.workshops = require("./models/workshops")(sequelize, Sequelize);
+db.speakers = require("./models/speakers")(sequelize, Sequelize);
+db.workshopAttendees = require("./models/workshopAttendees")(sequelize, Sequelize);
 
 // Llamar a los métodos associate si existen
 Object.keys(db).forEach(modelName => {
