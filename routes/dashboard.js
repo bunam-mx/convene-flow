@@ -865,4 +865,149 @@ module.exports = (app) => {
       res.status(500).send("Error interno del servidor");
     }
   });
+
+  app.get("/cf/dashboard/xlsx/updates", async function (req, res) {
+    try {
+      if (!req.session.userType || !["admin", "staff"].includes(req.session.userType)) {
+        return res.status(403).send("Acceso denegado");
+      }
+
+      const proposals = await db.proposals.findAll({
+        where: { state: "Aceptado con recomendaciones" },
+        attributes: [
+          "id",
+          "title",
+          "state",
+          "score",
+          "proposal",
+          "originalProposal",
+          "updatedAt",
+        ],
+        include: [
+          {
+            model: db.thematicLines,
+            as: "thematicLine",
+            attributes: ["thematicLine"],
+            required: false,
+          },
+          {
+            model: db.users,
+            as: "authors",
+            attributes: ["id", "email"],
+            include: [
+              {
+                model: db.sigecos,
+                attributes: ["name", "lastname", "entity"],
+                required: false,
+              },
+            ],
+            through: { attributes: [] },
+          },
+        ],
+        order: [["id", "ASC"]],
+      });
+
+      const rows = proposals.map((proposal) => {
+        const authors = proposal.authors || [];
+        const authorNames = authors
+          .map((author) => {
+            const firstName = author.sigeco?.name || "-";
+            const lastName = author.sigeco?.lastname || "-";
+            return `${firstName} ${lastName}`.trim();
+          })
+          .join(", ") || "-";
+
+        const authorEmails = authors
+          .map((author) => author.email || "-")
+          .join(", ") || "-";
+
+        return {
+          ID: proposal.id,
+          Título: proposal.title,
+          Estado: proposal.state,
+          Calificación: proposal.score !== null && proposal.score !== undefined ? proposal.score : "-",
+          "Línea temática": proposal.thematicLine?.thematicLine || "Sin asignar",
+          "Propuesta actualizada": proposal.originalProposal && proposal.originalProposal.trim().length > 0 ? "true" : "false",
+          "Propuesta": proposal.proposal || "",
+          "Propuesta original": proposal.originalProposal || "",
+          "Autores": authorNames,
+          "Correos autores": authorEmails,
+          Entidades: authors
+            .map((author) => author.sigeco?.entity || "-")
+            .join(", ") || "-",
+        };
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Actualizaciones");
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="propuestas-actualizadas.xlsx"'
+      );
+      res.send(buffer);
+    } catch (err) {
+      console.error("Error generating XLSX updates:", err);
+      res.status(500).send("Error interno del servidor");
+    }
+  });
+
+  app.get("/cf/dashboard/updates", async function (req, res) {
+    try {
+      if (!req.session.userType || !["admin", "staff"].includes(req.session.userType)) {
+        return res.render("no-access");
+      }
+
+      const proposalsWithRecommendations = await db.proposals.findAll({
+        where: { state: "Aceptado con recomendaciones" },
+        attributes: ["id", "title", "state", "score", "originalProposal", "updatedAt"],
+        include: [
+          {
+            model: db.thematicLines,
+            as: "thematicLine",
+            attributes: ["thematicLine"],
+            required: false,
+          },
+          {
+            model: db.users,
+            as: "authors",
+            attributes: ["id", "email"],
+            include: [
+              {
+                model: db.sigecos,
+                attributes: ["name", "lastname"],
+                required: false,
+              },
+            ],
+            through: {
+              attributes: [],
+            },
+          },
+        ],
+        order: [["id", "ASC"]],
+      });
+
+      const updatesData = proposalsWithRecommendations.map((proposal) => {
+        const plainProposal = proposal.get({ plain: true });
+
+        return {
+          ...plainProposal,
+          proposalUpdated: Boolean(
+            plainProposal.originalProposal && plainProposal.originalProposal.trim().length > 0
+          ),
+        };
+      });
+
+      res.render("updates", { updatesData });
+    } catch (err) {
+      console.error("Error rendering updates page:", err);
+      res.status(500).send("Error interno del servidor");
+    }
+  });
 };

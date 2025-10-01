@@ -1,0 +1,103 @@
+extends layout
+
+block menu 
+  include components/menuBlock.pug
+block title
+  header.py-4.px-30
+    h1.text-4xl.font-bold.mb-6 #[span AIESAD] 2025
+block content
+  .flex-1.py-4.px-30
+    div(class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6")
+      h2.text-3xl.font-bold Aceptado con recomendaciones
+      a(class="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors", href="/cf/dashboard/xlsx/updates")
+        i.fas.fa-file-excel
+        span Descargar Excel
+    if updatesData && updatesData.length
+      .max-h-130.overflow-x-auto
+        table.min-w-full.divide-y-2.divide-gray-200
+          thead(class="sticky top-0 bg-white ltr\:text-left rtl\:text-right")
+            tr(class="*\:font-medium *\:text-gray-900")
+              th.px-3.py-2.whitespace-nowrap ID
+              th.px-3.py-2.whitespace-nowrap Título
+              th.px-3.py-2.whitespace-nowrap Estado
+              th.px-3.py-2.whitespace-nowrap Calificación
+              th.px-3.py-2.whitespace-nowrap Línea temática
+              th.px-3.py-2.whitespace-nowrap Propuesta actualizada
+          tbody.divide-y.divide-gray-200
+            each proposal in updatesData
+              tr
+                td.px-3.py-2.whitespace-nowrap= proposal.id
+                td.px-3.py-2.max-w-80
+                  a(class="js-proposal-link text-blue-700 hover:text-blue-900 font-medium" href="#" data-proposal-id=proposal.id)= proposal.title
+                td.px-3.py-2.whitespace-nowrap= proposal.state
+                td.px-3.py-2.whitespace-nowrap= proposal.score !== null && proposal.score !== undefined ? proposal.score : '-'
+                td.px-3.py-2.whitespace-nowrap= proposal.thematicLine && proposal.thematicLine.thematicLine ? proposal.thematicLine.thematicLine : 'Sin asignar'
+                td.px-3.py-2.whitespace-nowrap
+                  if proposal.proposalUpdated
+                    i.fas.fa-eraser.text-green-500(title="Con cambios")
+                  else
+                    i.fas.fa-eraser.text-red-600(title="Sin cambios")
+    else
+      p.text-gray-600 No hay propuestas con recomendaciones por mostrar.
+  #proposal-details.mt-10.bg-white.border.border-gray-200.rounded-lg.p-6.shadow-sm.py-4.px-30.mx-auto.container
+    h3#proposal-details-title.text-2xl.font-bold.mb-4 Selecciona una propuesta
+    ul#proposal-details-authors.list-disc.ps-6.text-gray-700
+      li.text-gray-500 Esperando selección...
+  script(type="application/json" id="updates-data").
+    !{JSON.stringify(updatesData || [])}
+  script.
+    document.addEventListener('DOMContentLoaded', () => {
+      const dataElement = document.getElementById('updates-data');
+      let proposals = [];
+
+      if (dataElement) {
+        try {
+          proposals = JSON.parse(dataElement.textContent || '[]');
+        } catch (error) {
+          console.error('No fue posible analizar los datos de propuestas.', error);
+        }
+      }
+      const links = document.querySelectorAll('.js-proposal-link');
+      const detailsSection = document.getElementById('proposal-details');
+      const titleEl = document.getElementById('proposal-details-title');
+      const authorsList = document.getElementById('proposal-details-authors');
+
+      const renderAuthors = (authors = []) => {
+        authorsList.innerHTML = '';
+
+        if (!authors.length) {
+          const emptyItem = document.createElement('li');
+          emptyItem.textContent = 'Sin autores registrados.';
+          emptyItem.className = 'text-gray-500';
+          authorsList.appendChild(emptyItem);
+          return;
+        }
+
+        authors.forEach((author) => {
+          const item = document.createElement('li');
+          const firstName = author.sigeco?.name || '-';
+          const lastName = author.sigeco?.lastname || '-';
+          const email = author.email || 'Sin correo';
+
+          item.innerHTML = `<span class="font-semibold">${firstName} ${lastName}</span> · <span class="text-gray-600">${email}</span>`;
+          authorsList.appendChild(item);
+        });
+      };
+
+      links.forEach((link) => {
+        link.addEventListener('click', (event) => {
+          event.preventDefault();
+          const proposalId = Number.parseInt(link.dataset.proposalId, 10);
+          const proposal = proposals.find((item) => item.id === proposalId);
+
+          if (!proposal) {
+            return;
+          }
+
+          titleEl.textContent = proposal.title || 'Propuesta sin título';
+          renderAuthors(proposal.authors || []);
+
+          detailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+    });
