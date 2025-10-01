@@ -22,6 +22,16 @@ module.exports = (sequelize, DataTypes) => {
 			type: DataTypes.TEXT,
 			allowNull: false,
 		},
+		participantCapacity: {
+			type: DataTypes.INTEGER,
+			allowNull: false,
+			defaultValue: 0,
+		},
+		registeredParticipants: {
+			type: DataTypes.INTEGER,
+			allowNull: false,
+			defaultValue: 0,
+		},
 	});
 
 	Workshops.associate = (models) => {
