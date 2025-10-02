@@ -26,6 +26,10 @@ db.proposalHistories = require("./models/proposalHistories")(sequelize, Sequeliz
 db.workshops = require("./models/workshops")(sequelize, Sequelize);
 db.speakers = require("./models/speakers")(sequelize, Sequelize);
 db.workshopAttendees = require("./models/workshopAttendees")(sequelize, Sequelize);
+db.places = require("./models/places")(sequelize, Sequelize);
+db.events = require("./models/events")(sequelize, Sequelize);
+db.participants = require("./models/participants")(sequelize, Sequelize);
+db.eventParticipants = require("./models/eventParticipants")(sequelize, Sequelize);
 
 // Llamar a los métodos associate si existen
 Object.keys(db).forEach(modelName => {
@@ -36,7 +40,7 @@ Object.keys(db).forEach(modelName => {
 
 sequelize
   .sync({
-    alter: true, // Cambiado a false para evitar alteraciones automáticas
+    alter: false, // Cambiado a false para evitar alteraciones automáticas
   })
   .then(() => {
     console.log("Database & tables updated!");

@@ -32,6 +32,9 @@ require('./routes/api/sigecos')(app);
 require('./routes/api/proposals')(app);
 require('./routes/api/thematicLines')(app);
 require('./routes/api/workshops')(app);
+require('./routes/api/events')(app);
+require('./routes/api/places')(app);
+require('./routes/api/participants')(app);
 
 const PORT = process.env.PORT || 6600;
 app.listen(PORT);
