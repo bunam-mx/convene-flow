@@ -35,6 +35,18 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: "participantId",
       as: "eventLinks",
     });
+
+    Participants.belongsToMany(models.workshops, {
+      through: models.workshopParticipants,
+      foreignKey: "participantId",
+      otherKey: "workshopId",
+      as: "workshops",
+    });
+
+    Participants.hasMany(models.workshopParticipants, {
+      foreignKey: "participantId",
+      as: "workshopLinks",
+    });
   };
 
   return Participants;

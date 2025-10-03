@@ -57,11 +57,24 @@ const fetchAllEvents = async () => {
   const events = await db.events.findAll({
     include: eventIncludeConfig,
     order: [
-      ["order", "ASC"],
       ["date", "ASC"],
       ["timeStart", "ASC"],
+      ["order", "ASC"],
     ],
   });
+  return events.map(formatEvent);
+};
+
+const fetchEventsByDate = async (targetDate) => {
+  const events = await db.events.findAll({
+    where: { date: targetDate },
+    include: eventIncludeConfig,
+    order: [
+      ["timeStart", "ASC"],
+      ["order", "ASC"],
+    ],
+  });
+
   return events.map(formatEvent);
 };
 
@@ -91,6 +104,22 @@ const computeNextParticipantOrder = async (eventId, transaction) => {
 };
 
 module.exports = (app) => {
+  app.route("/api/events/date/:date").get(async function (req, res) {
+    const { date } = req.params;
+
+    if (!date) {
+      return res.status(400).json({ error: "Provide a date value to filter events." });
+    }
+
+    try {
+      const events = await fetchEventsByDate(date);
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching events by date:", error);
+      res.status(500).json({ error: "Unable to fetch events for the specified date." });
+    }
+  });
+
   app.route("/api/events/").get(async function (req, res) {
     try {
       const events = await fetchAllEvents();

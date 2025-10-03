@@ -11,14 +11,64 @@ const includeAttendeesConfig = [
   },
 ];
 
+const includeParticipantsConfig = [
+  {
+    model: db.participants,
+    as: "participants",
+    attributes: ["id", "name", "institution", "bio"],
+    through: { attributes: ["order"] },
+  },
+];
+
+const workshopIncludeConfig = [...includeAttendeesConfig, ...includeParticipantsConfig];
+
+const formatWorkshop = (workshopInstance) => {
+  if (!workshopInstance) {
+    return null;
+  }
+
+  const data = workshopInstance.get ? workshopInstance.get({ plain: true }) : workshopInstance;
+
+  const participants = Array.isArray(data.participants) ? data.participants : [];
+  data.participants = participants
+    .map((participant) => {
+      const order = participant?.workshopParticipants?.order ?? participant?.order ?? 0;
+      return {
+        id: participant.id,
+        name: participant.name,
+        institution: participant.institution,
+        bio: participant.bio,
+        order,
+      };
+    })
+    .sort((a, b) => a.order - b.order);
+
+  return data;
+};
+
 const fetchWorkshopWithAssociations = async (id) => {
-  return db.workshops.findByPk(id, {
-    include: includeAttendeesConfig,
+  const workshop = await db.workshops.findByPk(id, {
+    include: workshopIncludeConfig,
   });
+
+  return formatWorkshop(workshop);
 };
 
 const fetchWorkshopWithoutAttendees = async (id) => {
   return db.workshops.findByPk(id);
+};
+
+const fetchAllWorkshops = async () => {
+  const workshops = await db.workshops.findAll({
+    include: workshopIncludeConfig,
+    order: [
+      ["date", "ASC"],
+      ["timeStart", "ASC"],
+      ["order", "ASC"],
+    ],
+  });
+
+  return workshops.map(formatWorkshop);
 };
 
 const validateAttendeeIds = async (userIds = []) => {
@@ -51,18 +101,48 @@ const parseCapacity = (rawValue) => {
   const numericValue = Number(rawValue);
   return { provided: true, value: numericValue };
 };
+const parseOrderValue = (rawValue) => {
+  if (rawValue === undefined || rawValue === null) {
+    return { provided: false, value: 0, valid: true };
+  }
+
+  const numericValue = Number(rawValue);
+  return {
+    provided: true,
+    value: numericValue,
+    valid: Number.isInteger(numericValue),
+  };
+};
 const createHttpError = (status, message) => {
   const error = new Error(message);
   error.status = status;
   return error;
 };
 
+const ensureParticipantExists = async (participantId, transaction) => {
+  const participant = await db.participants.findByPk(participantId, { transaction });
+  if (!participant) {
+    throw createHttpError(400, "The provided 'participantId' does not correspond to an existing participant.");
+  }
+};
+
+const computeNextWorkshopParticipantOrder = async (workshopId, transaction) => {
+  const maxOrder = await db.workshopParticipants.max("order", {
+    where: { workshopId },
+    transaction,
+  });
+
+  if (Number.isInteger(maxOrder)) {
+    return maxOrder + 1;
+  }
+
+  return 0;
+};
+
 module.exports = (app) => {
   app.route("/api/workshops/").get(async function (req, res) {
     try {
-      const workshops = await db.workshops.findAll({
-        include: includeAttendeesConfig,
-      });
+      const workshops = await fetchAllWorkshops();
       res.json(workshops);
     } catch (error) {
       console.error("Error fetching workshops:", error);
@@ -80,12 +160,35 @@ module.exports = (app) => {
     }
   });
 
+  app.route("/api/workshops/date/:date").get(async function (req, res) {
+    const { date } = req.params;
+
+    if (!date) {
+      return res.status(400).json({ error: "Provide a date value to filter workshops." });
+    }
+
+    try {
+      const workshops = await db.workshops.findAll({
+        where: { date },
+        include: workshopIncludeConfig,
+      });
+      res.json(workshops);
+    } catch (error) {
+      console.error("Error fetching workshops by date:", error);
+      res.status(500).json({ error: "Unable to fetch workshops for the specified date." });
+    }
+  });
+
   app.route("/api/workshops/").post(async function (req, res) {
     const {
       title,
       purpose,
       keyPoints,
       participantDeliverable,
+      date,
+      timeStart,
+      timeEnd,
+      order,
       participantCapacity,
     } = req.body;
 
@@ -95,18 +198,25 @@ module.exports = (app) => {
       });
     }
 
-    if (!title || !purpose || !keyPoints || !participantDeliverable) {
+    if (!title || !purpose || !keyPoints || !participantDeliverable || !date || !timeStart || !timeEnd) {
       return res.status(400).json({
-        error: "Fields 'title', 'purpose', 'keyPoints', and 'participantDeliverable' are required.",
+        error: "Fields 'title', 'purpose', 'keyPoints', 'participantDeliverable', 'date', 'timeStart', and 'timeEnd' are required.",
       });
     }
 
     try {
       const { provided: capacityProvided, value: parsedCapacity } = parseCapacity(participantCapacity);
+      const { provided: orderProvided, value: parsedOrder, valid: isOrderValid } = parseOrderValue(order);
 
       if (capacityProvided && !isValidCapacity(parsedCapacity)) {
         return res.status(400).json({
           error: "The field 'participantCapacity' must be a non-negative integer.",
+        });
+      }
+
+      if (!isOrderValid) {
+        return res.status(400).json({
+          error: "The field 'order' must be an integer if provided.",
         });
       }
 
@@ -115,6 +225,10 @@ module.exports = (app) => {
         purpose,
         keyPoints,
         participantDeliverable,
+        date,
+        timeStart,
+        timeEnd,
+        order: orderProvided ? parsedOrder : 0,
         participantCapacity: capacityProvided ? parsedCapacity : 0,
         registeredParticipants: 0,
       });
@@ -164,6 +278,10 @@ module.exports = (app) => {
       purpose,
       keyPoints,
       participantDeliverable,
+      date,
+      timeStart,
+      timeEnd,
+      order,
       participantCapacity,
       attendeeIds,
     } = req.body;
@@ -173,11 +291,15 @@ module.exports = (app) => {
       !purpose &&
       !keyPoints &&
       !participantDeliverable &&
+      date === undefined &&
+      timeStart === undefined &&
+      timeEnd === undefined &&
+      order === undefined &&
       attendeeIds === undefined &&
       participantCapacity === undefined
     ) {
       return res.status(400).json({
-        error: "Provide at least one field to update: 'title', 'purpose', 'keyPoints', 'participantDeliverable', 'participantCapacity', or 'attendeeIds'.",
+        error: "Provide at least one field to update: 'title', 'purpose', 'keyPoints', 'participantDeliverable', 'date', 'timeStart', 'timeEnd', 'order', 'participantCapacity', or 'attendeeIds'.",
       });
     }
 
@@ -188,6 +310,7 @@ module.exports = (app) => {
       }
 
       const { provided: capacityProvided, value: parsedCapacity } = parseCapacity(participantCapacity);
+      const { provided: orderProvided, value: parsedOrder, valid: isOrderValid } = parseOrderValue(order);
 
       if (capacityProvided && !isValidCapacity(parsedCapacity)) {
         return res.status(400).json({
@@ -195,10 +318,20 @@ module.exports = (app) => {
         });
       }
 
+      if (orderProvided && !isOrderValid) {
+        return res.status(400).json({
+          error: "The field 'order' must be an integer if provided.",
+        });
+      }
+
       if (title !== undefined) workshop.title = title;
       if (purpose !== undefined) workshop.purpose = purpose;
       if (keyPoints !== undefined) workshop.keyPoints = keyPoints;
       if (participantDeliverable !== undefined) workshop.participantDeliverable = participantDeliverable;
+      if (date !== undefined) workshop.date = date;
+      if (timeStart !== undefined) workshop.timeStart = timeStart;
+      if (timeEnd !== undefined) workshop.timeEnd = timeEnd;
+      if (orderProvided) workshop.order = parsedOrder;
 
       let targetCapacity = capacityProvided ? parsedCapacity : workshop.participantCapacity;
       if (capacityProvided) {
@@ -301,6 +434,138 @@ module.exports = (app) => {
       }
       console.error("Error adding attendee:", error);
       res.status(500).json({ error: "Unable to add attendee to the workshop." });
+    }
+  });
+
+  app.route("/api/workshops/:id/participants").post(async function (req, res) {
+    const { id } = req.params;
+    const { participantId, order } = req.body;
+
+    if (!participantId) {
+      return res.status(400).json({ error: "Provide 'participantId' to link a participant to this workshop." });
+    }
+
+    try {
+      await db.sequelize.transaction(async (transaction) => {
+        const workshop = await db.workshops.findByPk(id, {
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+
+        if (!workshop) {
+          throw createHttpError(404, "Workshop not found.");
+        }
+
+        await ensureParticipantExists(participantId, transaction);
+
+        const existingLink = await db.workshopParticipants.findOne({
+          where: { workshopId: id, participantId },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+
+        if (existingLink) {
+          throw createHttpError(409, "Participant is already linked to this workshop.");
+        }
+
+        const { provided: orderProvided, value: parsedOrder, valid: isOrderValid } = parseOrderValue(order);
+
+        if (orderProvided && !isOrderValid) {
+          throw createHttpError(400, "The field 'order' must be an integer if provided.");
+        }
+
+        const finalOrder = orderProvided ? parsedOrder : await computeNextWorkshopParticipantOrder(id, transaction);
+
+        await db.workshopParticipants.create(
+          {
+            workshopId: id,
+            participantId,
+            order: finalOrder,
+          },
+          { transaction }
+        );
+      });
+
+      const updatedWorkshop = await fetchWorkshopWithAssociations(id);
+      res.json(updatedWorkshop);
+    } catch (error) {
+      if (error && error.status) {
+        return res.status(error.status).json({ error: error.message });
+      }
+      console.error("Error adding participant to workshop:", error);
+      res.status(500).json({ error: "Unable to link participant to the workshop." });
+    }
+  });
+
+  app.route("/api/workshops/:id/participants/:participantId").put(async function (req, res) {
+    const { id, participantId } = req.params;
+    const { order } = req.body;
+
+    if (order === undefined || order === null) {
+      return res
+        .status(400)
+        .json({ error: "Provide the 'order' field to update the participant position in the workshop." });
+    }
+
+    try {
+      await db.sequelize.transaction(async (transaction) => {
+        const link = await db.workshopParticipants.findOne({
+          where: { workshopId: id, participantId },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+
+        if (!link) {
+          throw createHttpError(404, "Participant is not linked to this workshop.");
+        }
+
+        const { provided: orderProvided, value: parsedOrder, valid: isOrderValid } = parseOrderValue(order);
+
+        if (!orderProvided || !isOrderValid) {
+          throw createHttpError(400, "The field 'order' must be an integer.");
+        }
+
+        link.order = parsedOrder;
+        await link.save({ transaction });
+      });
+
+      const updatedWorkshop = await fetchWorkshopWithAssociations(id);
+      res.json(updatedWorkshop);
+    } catch (error) {
+      if (error && error.status) {
+        return res.status(error.status).json({ error: error.message });
+      }
+      console.error("Error updating participant order in workshop:", error);
+      res.status(500).json({ error: "Unable to update participant order for the workshop." });
+    }
+  });
+
+  app.route("/api/workshops/:id/participants/:participantId").delete(async function (req, res) {
+    const { id, participantId } = req.params;
+
+    try {
+      await db.sequelize.transaction(async (transaction) => {
+        const link = await db.workshopParticipants.findOne({
+          where: { workshopId: id, participantId },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+
+        if (!link) {
+          throw createHttpError(404, "Participant is not linked to this workshop.");
+        }
+
+        await link.destroy({ transaction });
+      });
+
+      const updatedWorkshop = await fetchWorkshopWithAssociations(id);
+      res.json(updatedWorkshop);
+    } catch (error) {
+      if (error && error.status) {
+        return res.status(error.status).json({ error: error.message });
+      }
+      console.error("Error removing participant from workshop:", error);
+      res.status(500).json({ error: "Unable to remove participant from the workshop." });
     }
   });
 
