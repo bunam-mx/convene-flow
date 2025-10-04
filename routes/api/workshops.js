@@ -20,7 +20,15 @@ const includeParticipantsConfig = [
   },
 ];
 
-const workshopIncludeConfig = [...includeAttendeesConfig, ...includeParticipantsConfig];
+const includePlaceConfig = [
+  {
+    model: db.places,
+    as: "place",
+    attributes: ["id", "placeName"],
+  },
+];
+
+const workshopIncludeConfig = [...includeAttendeesConfig, ...includeParticipantsConfig, ...includePlaceConfig];
 
 const formatWorkshop = (workshopInstance) => {
   if (!workshopInstance) {
@@ -43,6 +51,15 @@ const formatWorkshop = (workshopInstance) => {
     })
     .sort((a, b) => a.order - b.order);
 
+  if (data.place) {
+    data.place = {
+      id: data.place.id,
+      placeName: data.place.placeName,
+    };
+  } else {
+    data.place = null;
+  }
+
   return data;
 };
 
@@ -63,6 +80,19 @@ const fetchAllWorkshops = async () => {
     include: workshopIncludeConfig,
     order: [
       ["date", "ASC"],
+      ["timeStart", "ASC"],
+      ["order", "ASC"],
+    ],
+  });
+
+  return workshops.map(formatWorkshop);
+};
+
+const fetchWorkshopsByDate = async (date) => {
+  const workshops = await db.workshops.findAll({
+    where: { date },
+    include: [...includeParticipantsConfig, ...includePlaceConfig],
+    order: [
       ["timeStart", "ASC"],
       ["order", "ASC"],
     ],
@@ -119,6 +149,13 @@ const createHttpError = (status, message) => {
   return error;
 };
 
+const ensurePlaceExists = async (placeId, transaction) => {
+  const place = await db.places.findByPk(placeId, { transaction });
+  if (!place) {
+    throw createHttpError(400, "The provided 'placeId' does not correspond to an existing place.");
+  }
+};
+
 const ensureParticipantExists = async (participantId, transaction) => {
   const participant = await db.participants.findByPk(participantId, { transaction });
   if (!participant) {
@@ -168,10 +205,7 @@ module.exports = (app) => {
     }
 
     try {
-      const workshops = await db.workshops.findAll({
-        where: { date },
-        include: workshopIncludeConfig,
-      });
+      const workshops = await fetchWorkshopsByDate(date);
       res.json(workshops);
     } catch (error) {
       console.error("Error fetching workshops by date:", error);
@@ -190,6 +224,8 @@ module.exports = (app) => {
       timeEnd,
       order,
       participantCapacity,
+      placeId,
+      url,
     } = req.body;
 
     if (req.body.attendeeIds !== undefined) {
@@ -198,15 +234,16 @@ module.exports = (app) => {
       });
     }
 
-    if (!title || !purpose || !keyPoints || !participantDeliverable || !date || !timeStart || !timeEnd) {
+    if (!title || !purpose || !keyPoints || !participantDeliverable || !date || !timeStart || !timeEnd || !placeId) {
       return res.status(400).json({
-        error: "Fields 'title', 'purpose', 'keyPoints', 'participantDeliverable', 'date', 'timeStart', and 'timeEnd' are required.",
+        error: "Fields 'title', 'purpose', 'keyPoints', 'participantDeliverable', 'date', 'timeStart', 'timeEnd', and 'placeId' are required.",
       });
     }
 
     try {
       const { provided: capacityProvided, value: parsedCapacity } = parseCapacity(participantCapacity);
       const { provided: orderProvided, value: parsedOrder, valid: isOrderValid } = parseOrderValue(order);
+      const numericPlaceId = Number(placeId);
 
       if (capacityProvided && !isValidCapacity(parsedCapacity)) {
         return res.status(400).json({
@@ -220,6 +257,14 @@ module.exports = (app) => {
         });
       }
 
+      if (!Number.isInteger(numericPlaceId)) {
+        return res.status(400).json({
+          error: "The field 'placeId' must be an integer.",
+        });
+      }
+
+      await ensurePlaceExists(numericPlaceId);
+
       const newWorkshop = await db.workshops.create({
         title,
         purpose,
@@ -231,6 +276,8 @@ module.exports = (app) => {
         order: orderProvided ? parsedOrder : 0,
         participantCapacity: capacityProvided ? parsedCapacity : 0,
         registeredParticipants: 0,
+        placeId: numericPlaceId,
+        url,
       });
 
       const workshopWithRelations = await fetchWorkshopWithAssociations(newWorkshop.id);
@@ -284,6 +331,8 @@ module.exports = (app) => {
       order,
       participantCapacity,
       attendeeIds,
+      placeId,
+      url,
     } = req.body;
 
     if (
@@ -296,10 +345,12 @@ module.exports = (app) => {
       timeEnd === undefined &&
       order === undefined &&
       attendeeIds === undefined &&
-      participantCapacity === undefined
+      participantCapacity === undefined &&
+      placeId === undefined &&
+      url === undefined
     ) {
       return res.status(400).json({
-        error: "Provide at least one field to update: 'title', 'purpose', 'keyPoints', 'participantDeliverable', 'date', 'timeStart', 'timeEnd', 'order', 'participantCapacity', or 'attendeeIds'.",
+        error: "Provide at least one field to update: 'title', 'purpose', 'keyPoints', 'participantDeliverable', 'date', 'timeStart', 'timeEnd', 'order', 'participantCapacity', 'placeId', 'url', or 'attendeeIds'.",
       });
     }
 
@@ -311,6 +362,8 @@ module.exports = (app) => {
 
       const { provided: capacityProvided, value: parsedCapacity } = parseCapacity(participantCapacity);
       const { provided: orderProvided, value: parsedOrder, valid: isOrderValid } = parseOrderValue(order);
+      const placeIdProvided = placeId !== undefined;
+      const numericPlaceId = placeIdProvided ? Number(placeId) : null;
 
       if (capacityProvided && !isValidCapacity(parsedCapacity)) {
         return res.status(400).json({
@@ -324,6 +377,13 @@ module.exports = (app) => {
         });
       }
 
+      if (placeIdProvided) {
+        if (!Number.isInteger(numericPlaceId)) {
+          return res.status(400).json({ error: "The field 'placeId' must be an integer." });
+        }
+        await ensurePlaceExists(numericPlaceId);
+      }
+
       if (title !== undefined) workshop.title = title;
       if (purpose !== undefined) workshop.purpose = purpose;
       if (keyPoints !== undefined) workshop.keyPoints = keyPoints;
@@ -332,6 +392,8 @@ module.exports = (app) => {
       if (timeStart !== undefined) workshop.timeStart = timeStart;
       if (timeEnd !== undefined) workshop.timeEnd = timeEnd;
       if (orderProvided) workshop.order = parsedOrder;
+      if (url !== undefined) workshop.url = url;
+      if (placeIdProvided) workshop.placeId = numericPlaceId;
 
       let targetCapacity = capacityProvided ? parsedCapacity : workshop.participantCapacity;
       if (capacityProvided) {

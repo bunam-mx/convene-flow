@@ -20,6 +20,14 @@ module.exports = (sequelize, DataTypes) => {
       },
       as: "events",
     });
+
+    Places.hasMany(models.workshops, {
+      foreignKey: {
+        name: "placeId",
+        allowNull: false,
+      },
+      as: "workshops",
+    });
   };
 
   return Places;

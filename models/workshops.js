@@ -34,6 +34,18 @@ module.exports = (sequelize, DataTypes) => {
 			type: DataTypes.TIME,
 			allowNull: false,
 		},
+		url: {
+			type: DataTypes.STRING,
+			allowNull: true,
+		},
+		placeId: {
+			type: DataTypes.INTEGER,
+			allowNull: false,
+			references: {
+				model: "places",
+				key: "id",
+			},
+		},
 		order: {
 			type: DataTypes.INTEGER,
 			allowNull: false,
@@ -61,6 +73,13 @@ module.exports = (sequelize, DataTypes) => {
 		Workshops.hasMany(models.workshopAttendees, {
 			foreignKey: "workshopId",
 			as: "attendeeLinks",
+		});
+		Workshops.belongsTo(models.places, {
+			foreignKey: {
+				name: "placeId",
+				allowNull: false,
+			},
+			as: "place",
 		});
 		Workshops.belongsToMany(models.participants, {
 			through: models.workshopParticipants,
