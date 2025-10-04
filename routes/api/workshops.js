@@ -37,6 +37,10 @@ const formatWorkshop = (workshopInstance) => {
 
   const data = workshopInstance.get ? workshopInstance.get({ plain: true }) : workshopInstance;
 
+  if (!data.modality) {
+    data.modality = "presencial";
+  }
+
   const participants = Array.isArray(data.participants) ? data.participants : [];
   data.participants = participants
     .map((participant) => {
@@ -63,9 +67,10 @@ const formatWorkshop = (workshopInstance) => {
   return data;
 };
 
-const fetchWorkshopWithAssociations = async (id) => {
+const fetchWorkshopWithAssociations = async (id, transaction) => {
   const workshop = await db.workshops.findByPk(id, {
     include: workshopIncludeConfig,
+    transaction,
   });
 
   return formatWorkshop(workshop);
@@ -226,6 +231,7 @@ module.exports = (app) => {
       participantCapacity,
       placeId,
       url,
+      modality,
     } = req.body;
 
     if (req.body.attendeeIds !== undefined) {
@@ -263,6 +269,10 @@ module.exports = (app) => {
         });
       }
 
+      if (modality !== undefined && !["online", "presencial"].includes(modality)) {
+        return res.status(400).json({ error: "The field 'modality' must be either 'online' or 'presencial'." });
+      }
+
       await ensurePlaceExists(numericPlaceId);
 
       const newWorkshop = await db.workshops.create({
@@ -278,6 +288,7 @@ module.exports = (app) => {
         registeredParticipants: 0,
         placeId: numericPlaceId,
         url,
+        modality: modality ?? "presencial",
       });
 
       const workshopWithRelations = await fetchWorkshopWithAssociations(newWorkshop.id);
@@ -333,6 +344,7 @@ module.exports = (app) => {
       attendeeIds,
       placeId,
       url,
+      modality,
     } = req.body;
 
     if (
@@ -347,10 +359,11 @@ module.exports = (app) => {
       attendeeIds === undefined &&
       participantCapacity === undefined &&
       placeId === undefined &&
-      url === undefined
+      url === undefined &&
+      modality === undefined
     ) {
       return res.status(400).json({
-        error: "Provide at least one field to update: 'title', 'purpose', 'keyPoints', 'participantDeliverable', 'date', 'timeStart', 'timeEnd', 'order', 'participantCapacity', 'placeId', 'url', or 'attendeeIds'.",
+        error: "Provide at least one field to update: 'title', 'purpose', 'keyPoints', 'participantDeliverable', 'date', 'timeStart', 'timeEnd', 'order', 'participantCapacity', 'placeId', 'url', 'modality', or 'attendeeIds'.",
       });
     }
 
@@ -364,6 +377,7 @@ module.exports = (app) => {
       const { provided: orderProvided, value: parsedOrder, valid: isOrderValid } = parseOrderValue(order);
       const placeIdProvided = placeId !== undefined;
       const numericPlaceId = placeIdProvided ? Number(placeId) : null;
+      const modalityProvided = modality !== undefined;
 
       if (capacityProvided && !isValidCapacity(parsedCapacity)) {
         return res.status(400).json({
@@ -384,6 +398,10 @@ module.exports = (app) => {
         await ensurePlaceExists(numericPlaceId);
       }
 
+      if (modalityProvided && !["online", "presencial"].includes(modality)) {
+        return res.status(400).json({ error: "The field 'modality' must be either 'online' or 'presencial'." });
+      }
+
       if (title !== undefined) workshop.title = title;
       if (purpose !== undefined) workshop.purpose = purpose;
       if (keyPoints !== undefined) workshop.keyPoints = keyPoints;
@@ -394,6 +412,7 @@ module.exports = (app) => {
       if (orderProvided) workshop.order = parsedOrder;
       if (url !== undefined) workshop.url = url;
       if (placeIdProvided) workshop.placeId = numericPlaceId;
+      if (modalityProvided) workshop.modality = modality;
 
       let targetCapacity = capacityProvided ? parsedCapacity : workshop.participantCapacity;
       if (capacityProvided) {

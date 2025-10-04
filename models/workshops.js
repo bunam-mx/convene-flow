@@ -34,6 +34,11 @@ module.exports = (sequelize, DataTypes) => {
 			type: DataTypes.TIME,
 			allowNull: false,
 		},
+		modality: {
+			type: DataTypes.ENUM("online", "presencial"),
+			allowNull: false,
+			defaultValue: "presencial",
+		},
 		url: {
 			type: DataTypes.STRING,
 			allowNull: true,
