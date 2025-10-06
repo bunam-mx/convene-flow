@@ -41,11 +41,13 @@ module.exports = (sequelize, DataTypes) => {
     },
     eventType: {
       type: DataTypes.ENUM(
+        "award",
         "cultural",
         "closure",
         "forum",
         "conversation",
         "keynote",
+        "lunch",
         "panel",
         "inauguration",
         "presentations"

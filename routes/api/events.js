@@ -11,7 +11,7 @@ const eventIncludeConfig = [
     model: db.participants,
     as: "participants",
     attributes: ["id", "name", "institution", "bio"],
-    through: { attributes: ["order"] },
+    through: { attributes: ["order", "isModerator"] },
   },
 ];
 
@@ -32,11 +32,13 @@ const formatEvent = (eventInstance) => {
   data.participants = participants
     .map((participant) => {
       const order = participant?.eventParticipants?.order ?? participant?.order ?? 0;
+      const isModerator = participant?.eventParticipants?.isModerator ?? false;
       return {
         id: participant.id,
         name: participant.name,
         institution: participant.institution,
         bio: participant.bio,
+        isModerator,
         order,
       };
     })
@@ -101,6 +103,28 @@ const computeNextParticipantOrder = async (eventId, transaction) => {
     return maxOrder + 1;
   }
   return 0;
+};
+
+const parseOptionalBoolean = (rawValue, fieldName) => {
+  if (rawValue === undefined) {
+    return { provided: false };
+  }
+
+  if (typeof rawValue === "boolean") {
+    return { provided: true, value: rawValue };
+  }
+
+  if (typeof rawValue === "string") {
+    const normalized = rawValue.trim().toLowerCase();
+    if (["true", "1", "yes", "on"].includes(normalized)) {
+      return { provided: true, value: true };
+    }
+    if (["false", "0", "no", "off"].includes(normalized)) {
+      return { provided: true, value: false };
+    }
+  }
+
+  throw createHttpError(400, `The field '${fieldName}' must be a boolean value.`);
 };
 
 module.exports = (app) => {
@@ -300,7 +324,7 @@ module.exports = (app) => {
 
   app.route("/api/events/:id/participants").post(async function (req, res) {
     const { id } = req.params;
-    const { participantId, order } = req.body;
+    const { participantId, order, isModerator } = req.body;
 
     if (participantId === undefined) {
       return res.status(400).json({
@@ -326,6 +350,11 @@ module.exports = (app) => {
         });
       }
     }
+
+    const { provided: isModeratorProvided, value: isModeratorValue } = parseOptionalBoolean(
+      isModerator,
+      "isModerator"
+    );
 
     try {
       await db.sequelize.transaction(async (transaction) => {
@@ -362,6 +391,7 @@ module.exports = (app) => {
             eventId: id,
             participantId: numericParticipantId,
             order: assignedOrder,
+            isModerator: isModeratorProvided ? isModeratorValue : false,
           },
           { transaction }
         );
@@ -380,18 +410,28 @@ module.exports = (app) => {
 
   app.route("/api/events/:id/participants/:participantId").put(async function (req, res) {
     const { id, participantId } = req.params;
-    const { order } = req.body;
+    const { order, isModerator } = req.body;
 
-    if (order === undefined) {
+    if (order === undefined && isModerator === undefined) {
       return res.status(400).json({
-        error: "Provide 'order' to update the participant ordering.",
+        error: "Provide 'order' or 'isModerator' to update this participant link.",
       });
     }
 
-    const numericOrder = Number(order);
-    if (!Number.isInteger(numericOrder)) {
-      return res.status(400).json({ error: "The field 'order' must be an integer." });
+    let numericOrder;
+    let orderProvided = false;
+    if (order !== undefined) {
+      numericOrder = Number(order);
+      if (!Number.isInteger(numericOrder)) {
+        return res.status(400).json({ error: "The field 'order' must be an integer." });
+      }
+      orderProvided = true;
     }
+
+    const { provided: isModeratorProvided, value: isModeratorValue } = parseOptionalBoolean(
+      isModerator,
+      "isModerator"
+    );
 
     const numericParticipantId = Number(participantId);
     if (!Number.isInteger(numericParticipantId)) {
@@ -422,7 +462,14 @@ module.exports = (app) => {
           throw createHttpError(404, "Participant is not linked to this event.");
         }
 
-        link.order = numericOrder;
+        if (orderProvided) {
+          link.order = numericOrder;
+        }
+
+        if (isModeratorProvided) {
+          link.isModerator = isModeratorValue;
+        }
+
         await link.save({ transaction });
       });
 
