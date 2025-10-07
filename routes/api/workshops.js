@@ -483,24 +483,39 @@ module.exports = (app) => {
         });
 
         if (!workshop) {
-          throw createHttpError(404, "Workshop not found.");
+          throw createHttpError(404, "Taller no encontrado.");
         }
 
         const attendee = await db.users.findByPk(userId, { transaction });
         if (!attendee) {
-          throw createHttpError(404, "User not found.");
+          throw createHttpError(404, "Usuario no encontrado.");
         }
 
         const alreadyRegistered = await workshop.hasAttendee(attendee, { transaction });
         if (alreadyRegistered) {
-          throw createHttpError(409, "User is already registered for this workshop.");
+          throw createHttpError(409, "Ya se ha registrado a este taller.");
+        }
+
+        // Validate attendance mode compatibility
+        if (attendee.attendanceMode === "Virtual" && workshop.modality !== "online") {
+          throw createHttpError(400, "Los usuarios con modo de asistencia 'Virtual' solo pueden registrarse en talleres 'online'.");
+        }
+
+        // Check if user is already registered to any workshop
+        const existingRegistration = await db.workshopAttendees.findOne({
+          where: { userId },
+          transaction,
+        });
+
+        if (existingRegistration) {
+          throw createHttpError(409, "El usuario ya está registrado en otro taller. Cada usuario solo puede registrarse en un taller.");
         }
 
         if (
           workshop.participantCapacity > 0 &&
           workshop.registeredParticipants >= workshop.participantCapacity
         ) {
-          throw createHttpError(400, "This workshop has reached its participant capacity.");
+          throw createHttpError(400, "Este taller ha alcanzado su capacidad de participantes.");
         }
 
         await workshop.addAttendee(attendee, { transaction });
