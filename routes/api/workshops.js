@@ -218,6 +218,49 @@ module.exports = (app) => {
     }
   });
 
+  app.route("/api/workshops/attendee/:userId").get(async function (req, res) {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ error: "Provide a userId to fetch the registered workshop." });
+    }
+
+    const numericUserId = Number(userId);
+    if (!Number.isInteger(numericUserId)) {
+      return res.status(400).json({ error: "The parameter 'userId' must be an integer." });
+    }
+
+    try {
+      // Check if user exists
+      const user = await db.users.findByPk(numericUserId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found." });
+      }
+
+      // Find the workshop the user is registered to
+      const attendeeRecord = await db.workshopAttendees.findOne({
+        where: { userId: numericUserId },
+        include: [
+          {
+            model: db.workshops,
+            as: "workshop",
+            include: workshopIncludeConfig,
+          },
+        ],
+      });
+
+      if (!attendeeRecord) {
+        return res.json({ message: "User is not registered to any workshop.", workshop: null });
+      }
+
+      const workshop = formatWorkshop(attendeeRecord.workshop);
+      res.json({ workshop });
+    } catch (error) {
+      console.error("Error fetching user's workshop registration:", error);
+      res.status(500).json({ error: "Unable to fetch workshop registration for this user." });
+    }
+  });
+
   app.route("/api/workshops/").post(async function (req, res) {
     const {
       title,
