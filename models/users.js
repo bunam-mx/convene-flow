@@ -114,6 +114,19 @@ module.exports = (sequelize, type) => {
       otherKey: 'proposalId',
       timestamps: false
     });
+
+    // Relación muchos a muchos con Events (como asistente)
+    Users.belongsToMany(models.events, {
+      through: 'eventAttendees',
+      as: 'registeredEvents',
+      foreignKey: 'userId',
+      otherKey: 'eventId',
+    });
+
+    Users.hasMany(models.eventAttendees, {
+      foreignKey: 'userId',
+      as: 'eventRegistrations',
+    });
   };
 
   return Users;

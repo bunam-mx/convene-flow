@@ -30,6 +30,7 @@ db.places = require("./models/places")(sequelize, Sequelize);
 db.events = require("./models/events")(sequelize, Sequelize);
 db.participants = require("./models/participants")(sequelize, Sequelize);
 db.eventParticipants = require("./models/eventParticipants")(sequelize, Sequelize);
+db.eventAttendees = require("./models/eventAttendees")(sequelize, Sequelize);
 db.workshopParticipants = require("./models/workshopParticipants")(sequelize, Sequelize);
 
 // Llamar a los métodos associate si existen

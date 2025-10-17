@@ -13,6 +13,12 @@ const eventIncludeConfig = [
     attributes: ["id", "name", "institution", "bio"],
     through: { attributes: ["order", "isModerator"] },
   },
+  {
+    model: db.users,
+    as: "attendees",
+    attributes: ["id", "email", "userType", "attendanceMode"],
+    through: { attributes: [] },
+  },
 ];
 
 const createHttpError = (status, message) => {
@@ -28,6 +34,7 @@ const formatEvent = (eventInstance) => {
 
   const data = eventInstance.get ? eventInstance.get({ plain: true }) : eventInstance;
   const participants = Array.isArray(data.participants) ? data.participants : [];
+  const attendees = Array.isArray(data.attendees) ? data.attendees : [];
 
   data.participants = participants
     .map((participant) => {
@@ -43,6 +50,15 @@ const formatEvent = (eventInstance) => {
       };
     })
     .sort((a, b) => a.order - b.order);
+
+  data.attendees = attendees.map((attendee) => {
+    return {
+      id: attendee.id,
+      email: attendee.email,
+      userType: attendee.userType,
+      attendanceMode: attendee.attendanceMode,
+    };
+  });
 
   return data;
 };
@@ -80,6 +96,30 @@ const fetchEventsByDate = async (targetDate) => {
   return events.map(formatEvent);
 };
 
+const fetchEventsByAttendee = async (userId) => {
+  const includeConfig = eventIncludeConfig.map((include) => {
+    if (include.as === "attendees") {
+      return {
+        ...include,
+        where: { id: userId },
+        required: true,
+      };
+    }
+    return include;
+  });
+
+  const events = await db.events.findAll({
+    include: includeConfig,
+    order: [
+      ["date", "ASC"],
+      ["timeStart", "ASC"],
+      ["order", "ASC"],
+    ],
+  });
+
+  return events.map(formatEvent);
+};
+
 const ensurePlaceExists = async (placeId, transaction) => {
   const place = await db.places.findByPk(placeId, { transaction });
   if (!place) {
@@ -92,6 +132,14 @@ const ensureParticipantExists = async (participantId, transaction) => {
   if (!participant) {
     throw createHttpError(400, "The provided 'participantId' does not correspond to an existing participant.");
   }
+};
+
+const ensureUserExists = async (userId, transaction) => {
+  const user = await db.users.findByPk(userId, { transaction });
+  if (!user) {
+    throw createHttpError(400, "The provided 'userId' does not correspond to an existing user.");
+  }
+  return user;
 };
 
 const computeNextParticipantOrder = async (eventId, transaction) => {
@@ -151,6 +199,39 @@ module.exports = (app) => {
     } catch (error) {
       console.error("Error fetching events:", error);
       res.status(500).json({ error: "Unable to fetch events." });
+    }
+  });
+
+  app.route("/api/events/attendees/:userId").get(async function (req, res) {
+    const { userId } = req.params;
+
+    const numericUserId = Number(userId);
+    if (!Number.isInteger(numericUserId)) {
+      return res
+        .status(400)
+        .json({ error: "The route parameter 'userId' must be an integer." });
+    }
+
+    try {
+      await ensureUserExists(numericUserId);
+
+      const events = await fetchEventsByAttendee(numericUserId);
+      const eventsWithoutAttendees = events.map((event) => {
+        if (!event || typeof event !== "object") {
+          return event;
+        }
+        const { attendees, ...rest } = event;
+        return rest;
+      });
+      res.json(eventsWithoutAttendees);
+    } catch (error) {
+      if (error.status) {
+        return res.status(error.status).json({ error: error.message });
+      }
+      console.error("Error fetching events for attendee:", error);
+      res
+        .status(500)
+        .json({ error: "Unable to fetch events for the specified attendee." });
     }
   });
 
@@ -527,6 +608,115 @@ module.exports = (app) => {
       }
       console.error("Error removing participant from event:", error);
       res.status(500).json({ error: "Unable to remove the participant from this event." });
+    }
+  });
+
+  app.route("/api/events/:id/attendees").post(async function (req, res) {
+    const { id } = req.params;
+    const { userId } = req.body;
+
+    if (userId === undefined) {
+      return res.status(400).json({
+        error: "Provide 'userId' to register a user for this event.",
+      });
+    }
+
+    const numericUserId = Number(userId);
+    if (!Number.isInteger(numericUserId)) {
+      return res.status(400).json({
+        error: "The field 'userId' must be an integer.",
+      });
+    }
+
+    try {
+      await db.sequelize.transaction(async (transaction) => {
+        const event = await db.events.findByPk(id, {
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+
+        if (!event) {
+          throw createHttpError(404, "Event not found.");
+        }
+
+        await ensureUserExists(numericUserId, transaction);
+
+        const existingLink = await db.eventAttendees.findOne({
+          where: {
+            eventId: id,
+            userId: numericUserId,
+          },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+
+        if (existingLink) {
+          throw createHttpError(409, "User is already registered for this event.");
+        }
+
+        await db.eventAttendees.create(
+          {
+            eventId: id,
+            userId: numericUserId,
+          },
+          { transaction }
+        );
+      });
+
+      const eventWithRelations = await fetchEventWithAssociations(id);
+      res.status(201).json(eventWithRelations);
+    } catch (error) {
+      if (error.status) {
+        return res.status(error.status).json({ error: error.message });
+      }
+      console.error("Error registering user for event:", error);
+      res.status(500).json({ error: "Unable to register user for the event." });
+    }
+  });
+
+  app.route("/api/events/:id/attendees/:userId").delete(async function (req, res) {
+    const { id, userId } = req.params;
+
+    const numericUserId = Number(userId);
+    if (!Number.isInteger(numericUserId)) {
+      return res.status(400).json({ error: "The route parameter 'userId' must be an integer." });
+    }
+
+    try {
+      await db.sequelize.transaction(async (transaction) => {
+        const event = await db.events.findByPk(id, {
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+
+        if (!event) {
+          throw createHttpError(404, "Event not found.");
+        }
+
+        const link = await db.eventAttendees.findOne({
+          where: {
+            eventId: id,
+            userId: numericUserId,
+          },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+
+        if (!link) {
+          throw createHttpError(404, "User is not registered for this event.");
+        }
+
+        await link.destroy({ transaction });
+      });
+
+      const eventWithRelations = await fetchEventWithAssociations(id);
+      res.json(eventWithRelations);
+    } catch (error) {
+      if (error.status) {
+        return res.status(error.status).json({ error: error.message });
+      }
+      console.error("Error unregistering user from event:", error);
+      res.status(500).json({ error: "Unable to unregister user from this event." });
     }
   });
 };
